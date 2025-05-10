@@ -5,13 +5,17 @@ import com.cobblemon.mod.common.client.gui.summary.Summary;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
+import org.dystoria.tweaks.DystoriaTweaksClient;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public final class ShinyIcons {
-    private static final Identifier SHINIER = Identifier.of("dystoria", "textures/gui/shiny/shinier.png");
-    private static final Identifier SHINIEST = Identifier.of("dystoria", "textures/gui/shiny/shiniest.png");
+    public static final Identifier POKEDEX_SHINIER_BUTTON = DystoriaTweaksClient.identifier("textures/gui/pokedex/shinier.png");
+    public static final Identifier POKEDEX_SHINIEST_BUTTON = DystoriaTweaksClient.identifier("textures/gui/pokedex/shiniest.png");
+
+    private static final Identifier SHINIER = DystoriaTweaksClient.identifier("textures/gui/shiny/shinier.png");
+    private static final Identifier SHINIEST = DystoriaTweaksClient.identifier("textures/gui/shiny/shiniest.png");
 
     private static final List<Identifier> STARS = List.of(Summary.Companion.getIconShinyResource(), SHINIER, SHINIEST);
 
