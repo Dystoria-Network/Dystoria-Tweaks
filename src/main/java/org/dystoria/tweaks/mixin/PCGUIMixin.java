@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(PCGUI.class)
+@Mixin(value = PCGUI.class, remap = false)
 public abstract class PCGUIMixin extends Screen {
     protected PCGUIMixin (Text title) {
         super(title);

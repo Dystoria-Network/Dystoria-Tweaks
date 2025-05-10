@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(TradeGUI.class)
+@Mixin(value = TradeGUI.class, remap = false)
 public abstract class TradeGUIMixin extends Screen {
     protected TradeGUIMixin (Text title) {
         super(title);
