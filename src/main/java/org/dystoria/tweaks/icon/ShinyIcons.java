@@ -11,9 +11,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public final class ShinyIcons {
-    public static final Identifier POKEDEX_SHINIER_BUTTON = DystoriaTweaksClient.identifier("textures/gui/pokedex/shinier.png");
-    public static final Identifier POKEDEX_SHINIEST_BUTTON = DystoriaTweaksClient.identifier("textures/gui/pokedex/shiniest.png");
-
     private static final Identifier SHINIER = DystoriaTweaksClient.identifier("textures/gui/shiny/shinier.png");
     private static final Identifier SHINIEST = DystoriaTweaksClient.identifier("textures/gui/shiny/shiniest.png");
 
