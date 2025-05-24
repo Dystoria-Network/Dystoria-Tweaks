@@ -8,10 +8,11 @@
 		"Provismet"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://www.dystoria.store/",
+		"sources": "https://gitlab.com/DystoriaDev/dystoria-tweaks",
+		"issues": "https://gitlab.com/DystoriaDev/dystoria-tweaks/-/issues"
 	},
-	"license": "CC0-1.0",
+	"license": "MIT",
 	"icon": "assets/dystoria-tweaks/icon.png",
 	"environment": "client",
 	"entrypoints": {
