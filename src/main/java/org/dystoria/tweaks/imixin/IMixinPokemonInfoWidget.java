@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.Set;
 
 public interface IMixinPokemonInfoWidget {
-    Set<String> getSeenShinyRarities ();
-    String getCurrentShinyRarity ();
-    void setShinyRarity (String rarity);
+    Set<String> dystoria_tweaks$getSeenShinyRarities ();
+    String dystoria_tweaks$getCurrentShinyRarity ();
+    void dystoria_tweaks$setShinyRarity (String rarity);
 
-    List<String> getSeenSkins ();
-    int getSkinIndex ();
-    void setSkinIndex (int value);
+    List<String> dystoria_tweaks$getSeenSkins ();
+    int dystoria_tweaks$getSkinIndex ();
+    void dystoria_tweaks$setSkinIndex (int value);
 }

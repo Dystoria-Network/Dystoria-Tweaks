@@ -15,13 +15,11 @@ import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import org.dystoria.tweaks.DystoriaTweaksClient;
 import org.dystoria.tweaks.icon.PokedexButtons;
 import org.dystoria.tweaks.imixin.IMixinPokemonInfoWidget;
 import org.dystoria.tweaks.resources.DystoriaResourceListener;
@@ -57,7 +55,7 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
     @Shadow @Final private static Identifier tooltipEdge;
 
     @Unique private String shinyRarity = "";
-    @Unique private Set<String> seenShinyRarities = new HashSet<>();
+    @Unique private final Set<String> seenShinyRarities = new HashSet<>();
 
     @Unique private int currentSkinAspectIndex = -1;
     @Unique private List<String> seenSkins = List.of();
@@ -80,32 +78,32 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
     );
 
     @Override
-    public Set<String> getSeenShinyRarities () {
+    public Set<String> dystoria_tweaks$getSeenShinyRarities () {
         return this.seenShinyRarities;
     }
 
     @Override
-    public String getCurrentShinyRarity () {
+    public String dystoria_tweaks$getCurrentShinyRarity () {
         return this.shinyRarity;
     }
 
     @Override
-    public void setShinyRarity (String shinyRarity) {
+    public void dystoria_tweaks$setShinyRarity (String shinyRarity) {
         this.shinyRarity = shinyRarity;
     }
 
     @Override
-    public List<String> getSeenSkins () {
+    public List<String> dystoria_tweaks$getSeenSkins () {
         return this.seenSkins;
     }
 
     @Override
-    public int getSkinIndex () {
+    public int dystoria_tweaks$getSkinIndex () {
         return this.currentSkinAspectIndex;
     }
 
     @Override
-    public void setSkinIndex (int value) {
+    public void dystoria_tweaks$setSkinIndex (int value) {
         this.currentSkinAspectIndex = value;
     }
 
@@ -205,7 +203,7 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
 
         if (!infoWidget.getShiny()) {
             if (seenShinyAndNonShiny) {
-                mixinWidget.setShinyRarity("");
+                mixinWidget.dystoria_tweaks$setShinyRarity("");
                 infoWidget.setShiny(true);
                 infoWidget.updateAspects();
             }
@@ -214,35 +212,35 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
             return;
         }
 
-        Set<String> seenRarities = mixinWidget.getSeenShinyRarities();
-        String currentRarity = mixinWidget.getCurrentShinyRarity();
+        Set<String> seenRarities = mixinWidget.dystoria_tweaks$getSeenShinyRarities();
+        String currentRarity = mixinWidget.dystoria_tweaks$getCurrentShinyRarity();
 
         if (currentRarity.isEmpty()) {
-            if (seenRarities.contains("shinier")) mixinWidget.setShinyRarity("shinier");
-            else if (seenRarities.contains("shiniest")) mixinWidget.setShinyRarity("shiniest");
+            if (seenRarities.contains("shinier")) mixinWidget.dystoria_tweaks$setShinyRarity("shinier");
+            else if (seenRarities.contains("shiniest")) mixinWidget.dystoria_tweaks$setShinyRarity("shiniest");
             else if (seenShinyAndNonShiny) { // Only seen shiny, not shinier/shiniest. Set to non-shiny.
-                mixinWidget.setShinyRarity("");
+                mixinWidget.dystoria_tweaks$setShinyRarity("");
                 infoWidget.setShiny(false);
             }
         }
         else if (Objects.equals(currentRarity, "shinier")) {
             if (seenRarities.contains("shiniest")) {
-                mixinWidget.setShinyRarity("shiniest");
+                mixinWidget.dystoria_tweaks$setShinyRarity("shiniest");
             }
             else if (seenShinyAndNonShiny) {
-                mixinWidget.setShinyRarity("");
+                mixinWidget.dystoria_tweaks$setShinyRarity("");
                 infoWidget.setShiny(false);
             }
             else {
-                mixinWidget.setShinyRarity("");
+                mixinWidget.dystoria_tweaks$setShinyRarity("");
             }
         }
         else if (seenShinyAndNonShiny) { // Current rarity is shiniest
-            mixinWidget.setShinyRarity("");
+            mixinWidget.dystoria_tweaks$setShinyRarity("");
             infoWidget.setShiny(false);
         }
         else { // Current rarity is shiniest, but a non-shiny has never been seen
-            mixinWidget.setShinyRarity("");
+            mixinWidget.dystoria_tweaks$setShinyRarity("");
         }
 
         infoWidget.updateAspects();
