@@ -1,5 +1,2 @@
-## Additions
-- Added support for Dystoria's battle UI.
-
 ## Bugfixes
-- Add clientside fix for Shemurai's HP display.
+- Fixed battle HUD being on the wrong side when spectating.
