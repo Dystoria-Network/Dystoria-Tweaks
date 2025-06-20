@@ -33,7 +33,7 @@ public class BattleHud {
 
     public static void hudCallback (DrawContext context, RenderTickCounter counter) {
         ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
-        if (battle != null && MinecraftClient.getInstance().player != null) {
+        if (battle != null && MinecraftClient.getInstance().player != null && MinecraftClient.isHudEnabled()) {
             ClientBattleSide left = battle.getSide1().getActors().stream().anyMatch(actor -> actor.getUuid().equals(MinecraftClient.getInstance().player.getUuid())) ? battle.getSide1() : battle.getSide2();
             ClientBattleSide right = left == battle.getSide1() ? battle.getSide2() : battle.getSide1();
 
