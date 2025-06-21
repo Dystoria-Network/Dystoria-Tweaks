@@ -12,6 +12,13 @@ base {
 	archivesName = project.archives_base_name
 }
 
+fabricApi {
+	configureDataGeneration {
+		client = true
+		setModId("${project.archives_base_name}")
+	}
+}
+
 repositories {
 	maven {
 		url = "https://api.modrinth.com/maven"

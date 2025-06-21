@@ -18,6 +18,9 @@
 	"entrypoints": {
 		"client": [
 			"org.dystoria.tweaks.DystoriaTweaksClient"
+		],
+		"fabric-datagen": [
+			"org.dystoria.tweaks.datagen.DystoriaTweaksDatagen"
 		]
 	},
 	"mixins": [
