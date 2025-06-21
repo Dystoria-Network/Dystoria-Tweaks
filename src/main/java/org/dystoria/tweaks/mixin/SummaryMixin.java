@@ -41,8 +41,8 @@ public abstract class SummaryMixin extends Screen {
             );
 
             // Tera
-            double teraX = (x + 59) / 0.5;
-            double teraY = (y + 100) / 0.5;
+            double teraX = (x + 61) / 0.5;
+            double teraY = (y + 99) / 0.5;
             Identifier teraType = TeraIcons.getTeraIcon(this.selectedPokemon.getTeraType().showdownId());
             GuiUtilsKt.blitk(
                 context.getMatrices(),
