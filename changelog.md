@@ -1,2 +1,5 @@
+## Additions
+- Added tera icons to the summary and PC.
+
 ## Bugfixes
-- Fixed battle HUD being on the wrong side when spectating.
+- Battle HUD is hidden with F1.
