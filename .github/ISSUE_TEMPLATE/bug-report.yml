@@ -1,0 +1,35 @@
+name: Report Bugs
+description: Report bugs or errors on the server.
+type: "Bug"
+projects: "Dystoria-Network/1"
+body:
+  - type: dropdown
+    id: bug-type
+    attributes:
+      label: Type of Error
+      options:
+        - Crash
+        - Incorrect Behaviour
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: describe-bug
+    attributes:
+      label: Description
+      placeholder: Describe the error here...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      placeholder: Write steps out here, e.g. in bullet points...
+    validations:
+      required: true
+  - type: textarea
+    id: crash-log
+    attributes:
+      label: Crash Log
+      placeholder: Upload or paste the crash report here (if applicable)...
+      render: bash

@@ -1,0 +1,28 @@
+name: Suggest Feature
+description: Suggest a new gameplay feature.
+type: "Gameplay Feature"
+projects: "Dystoria-Network/1"
+body:
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Type
+      options:
+        - New Mod
+        - Adjust Existing Mod Code
+        - Adjust Mod Configs
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: describe-feature
+    attributes:
+      label: Description
+      placeholder: Describe the feature here...
+    validations:
+      required: true
+  - type: textarea
+    id: describe-usecase
+    attributes:
+      label: Player View
+      placeholder: Describe how players will interact with the feature... (Can leave blank if not applicable.)
