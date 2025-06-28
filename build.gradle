@@ -76,7 +76,16 @@ publishMods {
 	type = STABLE
 	modLoaders.add("fabric")
 	displayName = project.version.toString()
-	dryRun = providers.environmentVariable("MODRINTH_TOKEN").getOrNull() == null || providers.environmentVariable("CURSEFORGE_TOKEN").getOrNull() == null
+	dryRun = providers.environmentVariable("GITHUB_TOKEN").getOrNull() == null || providers.environmentVariable("MODRINTH_TOKEN").getOrNull() == null || providers.environmentVariable("CURSEFORGE_TOKEN").getOrNull() == null
+
+	github {
+		repository = "Dystoria-Network/${project.github_repo}"
+		accessToken = providers.environmentVariable("GITHUB_TOKEN")
+		commitish = "${project.github_branch}"
+		tagName = "${project.mod_version}-mc${project.minecraft_version}"
+		allowEmptyFiles = true
+		displayName = "${project.mod_version} - ${project.minecraft_version}"
+	}
 
 	modrinth {
 		projectId = project.modrinth_id
@@ -107,6 +116,7 @@ publishMods {
 publishing {
 	publications {
 		create("mavenJava", MavenPublication) {
+			version = project.mod_version + "-mc" + project.minecraft_version
 			artifactId = project.archives_base_name
 			from components.java
 		}
