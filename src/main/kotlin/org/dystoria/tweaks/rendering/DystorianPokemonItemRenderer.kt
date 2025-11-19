@@ -23,6 +23,8 @@ import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
 import org.joml.Quaternionf
 import org.joml.Vector3f
+import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 class DystorianPokemonItemRenderer : CobblemonBuiltinItemRenderer {
     val context = RenderContext().also {
@@ -50,15 +52,33 @@ class DystorianPokemonItemRenderer : CobblemonBuiltinItemRenderer {
             DiffuseLighting.disableGuiDepthLighting()
         }
 
-        if (mode == ModelTransformationMode.FIXED) {
-            matrices.scale(1.0F, 1.0F, 1.0F)
-            matrices.translate(0.5, 0.5, -0.95)
+        var itemFrame3D = mode == ModelTransformationMode.FIXED
+        if (itemFrame3D) {
+            val normal = matrices.peek().normalMatrix
+            if (normal.m20().absoluteValue.roundToInt() == 1 || normal.m22().absoluteValue.roundToInt() == 1) {
+                itemFrame3D = false
+            }
+        }
+
+        if (mode == ModelTransformationMode.HEAD) {
+            val scale = model.profileScale * species.baseScale * 1.5F
+            matrices.translate(0.5, 0.9 + (scale * 1.5), 0.5)
+            matrices.scale(scale, scale, scale)
+
             state.setPoseToFirstSuitable(PoseType.PORTRAIT)
             model.applyAnimations(null, state, 0F, 0F, 0F, 0F, 0F)
 
-            val modelScale = model.profileScale * species.baseScale * 3
-            //matrices.translate(0.0, 0.0, -modelScale.toDouble() * -0.95)
-            //matrices.scale(modelScale, modelScale, modelScale)
+            val rotation = Quaternionf().fromEulerXYZDegrees(Vector3f(0F, 0F, 180F))
+            matrices.multiply(rotation)
+            rotation.conjugate()
+        }
+        else if (itemFrame3D) {
+            val scale = species.baseScale * 1.75F
+            matrices.translate(0.5, 0.5, 0.5 - (scale * 1.5))
+            matrices.scale(scale, scale, scale)
+
+            state.setPoseToFirstSuitable(PoseType.PORTRAIT)
+            model.applyAnimations(null, state, 0F, 0F, 0F, 0F, 0F)
 
             val rotation = Quaternionf().fromEulerXYZDegrees(Vector3f(90F, 0F, 0F))
             matrices.multiply(rotation)
