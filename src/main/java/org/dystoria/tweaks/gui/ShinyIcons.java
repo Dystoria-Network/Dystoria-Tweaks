@@ -1,4 +1,4 @@
-package org.dystoria.tweaks.icon;
+package org.dystoria.tweaks.gui;
 
 import com.cobblemon.mod.common.api.gui.GuiUtilsKt;
 import com.cobblemon.mod.common.client.gui.summary.Summary;

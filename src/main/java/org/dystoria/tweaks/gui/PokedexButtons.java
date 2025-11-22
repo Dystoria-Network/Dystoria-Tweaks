@@ -1,4 +1,4 @@
-package org.dystoria.tweaks.icon;
+package org.dystoria.tweaks.gui;
 
 import net.minecraft.util.Identifier;
 import org.dystoria.tweaks.DystoriaTweaksClient;
