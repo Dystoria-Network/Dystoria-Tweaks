@@ -2,7 +2,7 @@ package org.dystoria.tweaks.mixin;
 
 import com.cobblemon.mod.common.client.gui.trade.TradeGUI;
 import com.cobblemon.mod.common.pokemon.Pokemon;
-import org.dystoria.tweaks.icon.ShinyIcons;
+import org.dystoria.tweaks.gui.ShinyIcons;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;

@@ -21,13 +21,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BattleHud {
-    private static final char ALIVE = '\u234D';
-    private static final char STATUS ='\u234E';
-    private static final char FAINTED = '\u234F';
+    private static final char ALIVE = 'A';
+    private static final char STATUS ='S';
+    private static final char DEAD = 'D';
 
     private static final Identifier ALIVE_ICON = Identifier.of("dystorian-extras", "textures/font/alive.png");
-    private static final Identifier STATUS_ICON = Identifier.of("dystorian-extras", "textures/font/status.png");;
-    private static final Identifier FAINTED_ICON = Identifier.of("dystorian-extras", "textures/font/dead.png");;
+    private static final Identifier STATUS_ICON = Identifier.of("dystorian-extras", "textures/font/status.png");
+    private static final Identifier FAINTED_ICON = Identifier.of("dystorian-extras", "textures/font/dead.png");
 
     private static final int ICON_LENGTH = 16;
 
@@ -65,7 +65,7 @@ public class BattleHud {
         for (char icon : team.toString().toCharArray()) {
             if (icon == ALIVE) icons.add(ALIVE_ICON);
             else if (icon == STATUS) icons.add(STATUS_ICON);
-            else if (icon == FAINTED) icons.add(FAINTED_ICON);
+            else if (icon == DEAD) icons.add(FAINTED_ICON);
         }
 
         int height = MinecraftClient.getInstance().getWindow().getScaledHeight();

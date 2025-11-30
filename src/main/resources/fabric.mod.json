@@ -8,7 +8,8 @@
 		"Provismet"
 	],
 	"contributors": [
-		"Oculyn"
+		"Oculyn",
+        "Seb1224"
 	],
 	"contact": {
 		"homepage": "https://www.dystoria.store/",
@@ -34,6 +35,6 @@
 		"minecraft": "~1.21.1",
 		"java": ">=21",
 		"fabric-api": "*",
-		"cobblemon": "*"
+		"cobblemon": "~1.7.0"
 	}
 }

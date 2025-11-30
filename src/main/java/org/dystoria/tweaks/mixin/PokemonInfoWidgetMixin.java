@@ -1,26 +1,22 @@
 package org.dystoria.tweaks.mixin;
 
-import com.cobblemon.mod.common.api.gui.GuiUtilsKt;
 import com.cobblemon.mod.common.api.pokedex.PokedexEntryProgress;
 import com.cobblemon.mod.common.api.pokedex.entry.PokedexEntry;
 import com.cobblemon.mod.common.api.pokedex.entry.PokedexForm;
 import com.cobblemon.mod.common.client.CobblemonClient;
 import com.cobblemon.mod.common.client.CobblemonResources;
+import com.cobblemon.mod.common.client.gui.pokedex.PokedexTooltipKt;
 import com.cobblemon.mod.common.client.gui.pokedex.ScaledButton;
 import com.cobblemon.mod.common.client.gui.pokedex.widgets.PokemonInfoWidget;
 import com.cobblemon.mod.common.client.gui.summary.widgets.SoundlessWidget;
-import com.cobblemon.mod.common.client.render.RenderHelperKt;
 import com.llamalad7.mixinextras.sugar.Local;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import org.dystoria.tweaks.icon.PokedexButtons;
+import org.dystoria.tweaks.gui.PokedexButtons;
 import org.dystoria.tweaks.imixin.IMixinPokemonInfoWidget;
 import org.dystoria.tweaks.resources.DystoriaResourceListener;
 import org.jetbrains.annotations.NotNull;
@@ -51,8 +47,6 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
 
     @Shadow @Final private int pX;
     @Shadow @Final private int pY;
-    @Shadow @Final private static Identifier tooltipBackground;
-    @Shadow @Final private static Identifier tooltipEdge;
 
     @Unique private String shinyRarity = "";
     @Unique private final Set<String> seenShinyRarities = new HashSet<>();
@@ -114,16 +108,9 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
     }
 
     @Unique
-    private void renderButtonTooltip (DrawContext context, int x, int y, MutableText text) {
+    private void renderButtonTooltip (DrawContext context, int x, int y, MutableText text, float tickDelta) {
         text.setStyle(text.getStyle().withBold(true).withFont(CobblemonResources.INSTANCE.getDEFAULT_LARGE()));
-        int tooltipTextWidth = MinecraftClient.getInstance().textRenderer.getWidth(text);
-        int tooltipFullWidth = tooltipTextWidth + 6;
-
-        MatrixStack matrices = context.getMatrices();
-        GuiUtilsKt.blitk(matrices, tooltipEdge, x - (tooltipFullWidth / 2) - 1, y + 8, 11, 1);
-        GuiUtilsKt.blitk(matrices, tooltipBackground, x - (tooltipFullWidth / 2), y + 8, 11, tooltipFullWidth);
-        GuiUtilsKt.blitk(matrices, tooltipEdge, x + (tooltipFullWidth / 2), y + 8, 11, 1);
-        RenderHelperKt.drawScaledText(context, CobblemonResources.INSTANCE.getDEFAULT_LARGE(), text, x, y + 9, 1f, 1f, Integer.MAX_VALUE, 0xFFFFFFFF, true, true, null, null);
+        PokedexTooltipKt.renderTooltip(context, text, x, y, tickDelta, 10);
     }
 
     @Inject(method = "<init>", at = @At("TAIL"), remap = false)
@@ -132,7 +119,7 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
     }
 
     @Inject(method = "updateAspects", at = @At(value = "INVOKE", target = "Ljava/util/Set;addAll(Ljava/util/Collection;)Z"), remap = false)
-    private void applyCustomAspects (CallbackInfo info, @Local(ordinal = 0) Set<String> aspects) {
+    private void applyCustomAspects (CallbackInfo info, @Local(name = "aspects") Set<String> aspects) {
         if (!this.shinyRarity.isEmpty()) {
             aspects.add(this.shinyRarity);
 
@@ -191,12 +178,12 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
             this.skinButton.render(context, mouseX, mouseY, delta);
             if (this.currentSkinAspectIndex >= 0 && this.skinButton.isButtonHovered(mouseX, mouseY)) {
                 Text skinTooltip = Text.literal("Skin: " + this.seenSkins.get(this.currentSkinAspectIndex));
-                this.renderButtonTooltip(context, mouseX, mouseY, MutableText.of(skinTooltip.getContent()));
+                this.renderButtonTooltip(context, mouseX, mouseY, MutableText.of(skinTooltip.getContent()), delta);
             }
         }
     }
 
-    @Inject(method = "shinyButton$lambda$4", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "shinyButton$lambda$0", at = @At("HEAD"), cancellable = true, remap = false)
     private static void overrideShinyButton (PokemonInfoWidget infoWidget, ButtonWidget buttonWidget, CallbackInfo info) {
         IMixinPokemonInfoWidget mixinWidget = ((IMixinPokemonInfoWidget)(Object)infoWidget);
         boolean seenShinyAndNonShiny = infoWidget.getSeenShinyStates().size() > 1;
