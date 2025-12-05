@@ -25,9 +25,9 @@ public class BattleHud {
     private static final char STATUS ='S';
     private static final char DEAD = 'D';
 
-    private static final Identifier ALIVE_ICON = Identifier.of("dystorian-extras", "textures/font/alive.png");
-    private static final Identifier STATUS_ICON = Identifier.of("dystorian-extras", "textures/font/status.png");
-    private static final Identifier FAINTED_ICON = Identifier.of("dystorian-extras", "textures/font/dead.png");
+    private static final Identifier ALIVE_ICON = Identifier.of("dystoria-core", "textures/font/alive.png");
+    private static final Identifier STATUS_ICON = Identifier.of("dystoria-core", "textures/font/status.png");
+    private static final Identifier FAINTED_ICON = Identifier.of("dystoria-core", "textures/font/dead.png");
 
     private static final int ICON_LENGTH = 16;
 

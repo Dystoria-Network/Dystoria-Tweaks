@@ -1,2 +1,2 @@
-## Additions
-- Improved PokemonItem rendering.
+## Bugfixes
+- Fixed pokeball battle display textures
