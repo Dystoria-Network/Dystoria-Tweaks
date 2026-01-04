@@ -34,7 +34,7 @@ run/
 src/main/generated/.cache
 
 # java
-
+.kotlin/
 hs_err_*.log
 replay_*.log
 *.hprof
