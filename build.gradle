@@ -20,6 +20,7 @@ fabricApi {
 }
 
 repositories {
+    mavenLocal()
 	maven {
 		url = "https://api.modrinth.com/maven"
 	}
@@ -40,6 +41,7 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
 	modImplementation "com.cobblemon:fabric:${project.cobblemon_version}"
+    modImplementation "com.github.Provismet:lilycobble:${project.lilycobble_version}"
 }
 
 processResources {
