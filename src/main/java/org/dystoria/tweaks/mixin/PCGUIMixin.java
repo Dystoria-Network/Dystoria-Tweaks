@@ -7,6 +7,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import org.dystoria.tweaks.gui.TeraWidget;
+import org.dystoria.tweaks.gui.pokemon.MarkCounterWidget;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -20,15 +21,14 @@ public abstract class PCGUIMixin extends Screen {
         super(title);
     }
 
-    @Shadow
-    private Pokemon previewPokemon;
-
-    @Unique
-    private final TeraWidget teraWidget = new TeraWidget(0, 0);
+    @Shadow private Pokemon previewPokemon;
+    @Unique private final TeraWidget teraWidget = new TeraWidget(0, 0);
+    @Unique private final MarkCounterWidget markWidget = new MarkCounterWidget(0, 0);
 
     @Inject(method = "init", at = @At("TAIL"))
-    private void addEggWidget (CallbackInfo info) {
+    private void addWidgets (CallbackInfo info) {
         this.addDrawableChild(this.teraWidget);
+        this.addDrawableChild(this.markWidget);
     }
 
     @Inject(method = "render", at = @At("TAIL"))
@@ -45,11 +45,14 @@ public abstract class PCGUIMixin extends Screen {
                 16,
                 false
             );
-
-            // Tera
-            this.teraWidget.setX((super.width - PCGUI.BASE_WIDTH) / 2 + 6);
-            this.teraWidget.setY((super.height - PCGUI.BASE_HEIGHT) / 2 + 27);
-            this.teraWidget.setPokemon(this.previewPokemon);
         }
+
+        this.teraWidget.setPokemon(this.previewPokemon);
+        this.teraWidget.setX((super.width - PCGUI.BASE_WIDTH) / 2 + 6);
+        this.teraWidget.setY((super.height - PCGUI.BASE_HEIGHT) / 2 + 27);
+
+        this.markWidget.setMarks(this.previewPokemon);
+        this.markWidget.setX((super.width - PCGUI.BASE_WIDTH) / 2 + 34);
+        this.markWidget.setY((super.height - PCGUI.BASE_HEIGHT) / 2 + 1);
     }
 }

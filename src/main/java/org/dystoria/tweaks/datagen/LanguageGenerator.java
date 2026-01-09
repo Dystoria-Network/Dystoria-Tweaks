@@ -15,5 +15,8 @@ public class LanguageGenerator extends FabricLanguageProvider {
     public void generateTranslations (RegistryWrapper.WrapperLookup wrapperLookup, TranslationBuilder translationBuilder) {
         translationBuilder.add("gui.dystoria-tweaks.tera", "Tera Type");
         translationBuilder.add("tooltip.dystoria-tweaks.tera", "Tera Type: %1$s");
+
+        translationBuilder.add("gui.dystoria-tweaks.mark_counter", "Mark Counter");
+        translationBuilder.add("tooltip.dystoria-tweaks.mark_counter", "Marks: %1$s");
     }
 }

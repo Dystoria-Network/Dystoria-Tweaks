@@ -1,4 +1,6 @@
 {
+  "gui.dystoria-tweaks.mark_counter": "Mark Counter",
   "gui.dystoria-tweaks.tera": "Tera Type",
+  "tooltip.dystoria-tweaks.mark_counter": "Marks: %1$s",
   "tooltip.dystoria-tweaks.tera": "Tera Type: %1$s"
 }
