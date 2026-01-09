@@ -1,80 +1,98 @@
 package org.dystoria.tweaks.battle;
 
-import com.cobblemon.mod.common.api.battles.model.actor.ActorType;
 import com.cobblemon.mod.common.client.CobblemonClient;
+import com.cobblemon.mod.common.client.battle.ActiveClientBattlePokemon;
 import com.cobblemon.mod.common.client.battle.ClientBattle;
 import com.cobblemon.mod.common.client.battle.ClientBattleActor;
 import com.cobblemon.mod.common.client.battle.ClientBattleSide;
+import com.provismet.cobblemon.lilycobble.networking.battle.BattlePokemonState;
+import com.provismet.cobblemon.lilycobble.networking.battle.BattleSideState;
+import com.provismet.cobblemon.lilycobble.networking.battle.BattleStatePacketS2C;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.scoreboard.ReadableScoreboardScore;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.number.StyledNumberFormat;
-import net.minecraft.util.Identifier;
+import org.dystoria.tweaks.gui.battle.PokeballPreviewWidget;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 public class BattleHud {
-    private static final char ALIVE = 'A';
-    private static final char STATUS ='S';
-    private static final char DEAD = 'D';
+    private static BattleStatePacketS2C state = null;
+    private static final Map<UUID, BattlePokemonMemory> memory = new HashMap<>();
+    private static final List<PokeballPreviewWidget> pokeballPreviews = new ArrayList<>();
 
-    private static final Identifier ALIVE_ICON = Identifier.of("dystoria-core", "textures/font/alive.png");
-    private static final Identifier STATUS_ICON = Identifier.of("dystoria-core", "textures/font/status.png");
-    private static final Identifier FAINTED_ICON = Identifier.of("dystoria-core", "textures/font/dead.png");
-
-    private static final int ICON_LENGTH = 16;
-
-    public static void hudCallback (DrawContext context, RenderTickCounter counter) {
+    public static void receivePacket (BattleStatePacketS2C packet, ServerPlayNetworking.Context context) {
         ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
-        if (battle != null && MinecraftClient.getInstance().player != null && MinecraftClient.isHudEnabled()) {
-            ClientBattleSide left = battle.getSide1().getActors().stream().anyMatch(actor -> actor.getUuid().equals(MinecraftClient.getInstance().player.getUuid())) ? battle.getSide1() : battle.getSide2();
-            ClientBattleSide right = left == battle.getSide1() ? battle.getSide2() : battle.getSide1();
+        if (CobblemonClient.INSTANCE.getBattle() == null) return;
+        state = packet;
 
-            renderSide(context, left, true);
-            renderSide(context, right, false);
+        for (BattleSideState side : packet.sides()) {
+            for (BattlePokemonState pokemon : side.getPokemon()) {
+                memory.putIfAbsent(pokemon.uuid(), new BattlePokemonMemory(pokemon));
+                memory.get(pokemon.uuid()).setState(pokemon);
+            }
+        }
+
+        for (ClientBattleSide side : battle.getSides()) {
+            for (ActiveClientBattlePokemon pokemon : side.getActiveClientBattlePokemon()) {
+                if (pokemon.getBattlePokemon() == null) continue;
+
+                UUID uuid = pokemon.getBattlePokemon().getUuid();
+                if (memory.containsKey(uuid)) {
+                    memory.get(uuid).setFormData(pokemon.getBattlePokemon().getProperties().asRenderablePokemon().getForm());
+                }
+            }
+        }
+
+        int pokemonCount = packet.sides().stream().mapToInt(side -> side.getPokemon().size()).sum();
+        if (pokeballPreviews.size() != pokemonCount) {
+            pokeballPreviews.clear();
+            packet.sides().forEach(side -> {
+                Optional<ClientBattleActor> anyActor = side.actors()
+                    .stream()
+                    .map(actor -> battle.getParticipatingActor(actor.uuid()))
+                    .filter(Objects::nonNull)
+                    .findAny();
+
+                if (anyActor.isEmpty()) return; // This should not happen!
+                boolean isLeft = anyActor.get().getSide().equals(battle.getSide1());
+
+                List<BattlePokemonState> team = side.getPokemon();
+                for (int i = 0; i < team.size(); ++i) {
+                    BattlePokemonMemory pokemon = memory.get(team.get(i).uuid());
+                    if (pokemon == null) continue; // Should never happen, but just in case
+                    pokeballPreviews.add(new PokeballPreviewWidget(i, team.size(), isLeft, pokemon));
+                }
+            });
         }
     }
 
-    private static void renderSide (DrawContext context, ClientBattleSide side, boolean isLeft) {
-        ClientWorld world = MinecraftClient.getInstance().world;
-        if (world == null) return;
-
-        StringBuilder team = new StringBuilder();
-
-        for (ClientBattleActor actor : side.getActors()) {
-            if (actor.getType() != ActorType.PLAYER) continue;
-            PlayerEntity player = world.getPlayerByUuid(actor.getUuid());
-            if (player == null) continue;
-
-            Scoreboard scoreboard = player.getScoreboard();
-            ScoreboardObjective teamScoreboard = scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.BELOW_NAME);
-            if (teamScoreboard == null) continue;
-
-            ReadableScoreboardScore readableScoreboardScore = scoreboard.getScore(player, teamScoreboard);
-            team.append(ReadableScoreboardScore.getFormattedScore(readableScoreboardScore, teamScoreboard.getNumberFormatOr(StyledNumberFormat.EMPTY)).getString().strip());
+    public static void hudCallback (DrawContext context, RenderTickCounter counter) {
+        ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
+        if (battle == null) {
+            memory.clear();
+            pokeballPreviews.clear();
+            state = null;
+            return;
         }
 
-        List<Identifier> icons = new ArrayList<>();
-        for (char icon : team.toString().toCharArray()) {
-            if (icon == ALIVE) icons.add(ALIVE_ICON);
-            else if (icon == STATUS) icons.add(STATUS_ICON);
-            else if (icon == DEAD) icons.add(FAINTED_ICON);
-        }
+        if (state != null && MinecraftClient.getInstance().player != null && MinecraftClient.isHudEnabled()) {
+            int height = MinecraftClient.getInstance().getWindow().getScaledHeight();
+            int width = MinecraftClient.getInstance().getWindow().getScaledWidth();
+            int mouseX = (int)(MinecraftClient.getInstance().mouse.getX() * width / MinecraftClient.getInstance().getWindow().getWidth());
+            int mouseY = (int)(MinecraftClient.getInstance().mouse.getY() * height / MinecraftClient.getInstance().getWindow().getHeight());
+            float tickDelta = counter.getTickDelta(true);
 
-        int height = MinecraftClient.getInstance().getWindow().getScaledHeight();
-        int x = isLeft ? 2 : MinecraftClient.getInstance().getWindow().getScaledWidth() - ICON_LENGTH - 2;
-        for (int i = 0; i < icons.size(); ++i) {
-            Identifier icon = icons.get(i);
-            int y = (height / 2) - (icons.size() * ICON_LENGTH / 2) + (i * (ICON_LENGTH + 1));
-
-            context.drawTexture(icon, x, y, 0, 0, ICON_LENGTH, ICON_LENGTH, ICON_LENGTH, ICON_LENGTH);
+            for (PokeballPreviewWidget widget : pokeballPreviews) {
+                widget.realignToScreen();
+                widget.render(context, mouseX, mouseY, tickDelta);
+            }
         }
     }
 }
