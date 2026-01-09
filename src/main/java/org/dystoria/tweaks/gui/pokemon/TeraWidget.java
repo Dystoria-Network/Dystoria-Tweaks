@@ -1,6 +1,5 @@
-package org.dystoria.tweaks.gui;
+package org.dystoria.tweaks.gui.pokemon;
 
-import com.cobblemon.mod.common.api.gui.GuiUtilsKt;
 import com.cobblemon.mod.common.api.types.tera.TeraType;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import net.minecraft.client.MinecraftClient;
@@ -8,24 +7,33 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import org.dystoria.tweaks.DystoriaTweaksClient;
 import org.jetbrains.annotations.Nullable;
 
 public class TeraWidget extends ClickableWidget {
+    private static final int TEXTURE_LENGTH = 22;
+
     private TeraType teraType;
 
     public TeraWidget(int x, int y) {
-        super(x, y, TeraIcons.LENGTH / 2, TeraIcons.LENGTH / 2, Text.translatable("gui.dystoria-tweaks.tera"));
+        super(x, y, TEXTURE_LENGTH / 2, TEXTURE_LENGTH / 2, Text.translatable("gui.dystoria-tweaks.tera"));
+    }
+
+    private static Identifier getTexture (String teraType) {
+        return DystoriaTweaksClient.identifier("textures/gui/tera/" + teraType + ".png");
     }
 
     @Override
     protected void renderWidget (DrawContext context, int mouseX, int mouseY, float delta) {
         if (teraType == null) return;
 
-        GuiUtilsKt.blitk(
-            context.getMatrices(),
-            TeraIcons.getTeraIcon(teraType.showdownId()),
+        context.drawTexture(
+            getTexture(this.teraType.showdownId()),
             this.getX(), this.getY(),
-            this.getHeight(), this.getWidth()
+            0, 0,
+            this.getWidth(), this.getHeight(),
+            this.getWidth(), this.getHeight()
         );
 
         if (this.isHovered()) {
@@ -43,5 +51,13 @@ public class TeraWidget extends ClickableWidget {
     public void setPokemon (@Nullable Pokemon pokemon) {
         if (pokemon == null) this.teraType = null;
         else this.teraType = pokemon.getTeraType();
+    }
+
+    public static int getSummaryX () {
+        return 6;
+    }
+
+    public static int getSummaryY () {
+        return 32;
     }
 }

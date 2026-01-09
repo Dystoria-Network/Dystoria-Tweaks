@@ -6,9 +6,11 @@ import org.dystoria.tweaks.gui.ShinyIcons;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
-import org.dystoria.tweaks.gui.TeraIcons;
+import org.dystoria.tweaks.gui.pokemon.MarkCounterWidget;
+import org.dystoria.tweaks.gui.pokemon.TeraWidget;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -19,8 +21,16 @@ public abstract class SummaryMixin extends Screen {
         super(title);
     }
 
-    @Shadow
-    private Pokemon selectedPokemon;
+    @Shadow private Pokemon selectedPokemon;
+
+    @Unique private final TeraWidget teraWidget = new TeraWidget(0, 0);
+    @Unique private final MarkCounterWidget markWidget = new MarkCounterWidget(0, 0);
+
+    @Inject(method = "init", at = @At("TAIL"))
+    private void addWidgets (CallbackInfo info) {
+        this.addDrawableChild(this.teraWidget);
+        this.addDrawableChild(this.markWidget);
+    }
 
     @Inject(method = "render", at = @At("TAIL"))
     private void addSummaryIcons (DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
@@ -37,11 +47,14 @@ public abstract class SummaryMixin extends Screen {
                 16,
                 false
             );
-
-            // Tera
-            double teraX = (x + 6) / 0.5;
-            double teraY = (y + 32) / 0.5;
-            TeraIcons.render(context, this.selectedPokemon, teraX, teraY, mouseX, mouseY);
         }
+
+        this.teraWidget.setX((super.width - Summary.BASE_WIDTH) / 2 + 6);
+        this.teraWidget.setY((super.height - Summary.BASE_HEIGHT) / 2 + 32);
+        this.teraWidget.setPokemon(this.selectedPokemon);
+
+        this.markWidget.setX((super.width - Summary.BASE_WIDTH) / 2 + 34);
+        this.markWidget.setY((super.height - Summary.BASE_HEIGHT) / 2 + 4);
+        this.markWidget.setMarks(this.selectedPokemon);
     }
 }
