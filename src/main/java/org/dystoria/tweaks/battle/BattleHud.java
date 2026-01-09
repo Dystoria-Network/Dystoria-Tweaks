@@ -5,16 +5,17 @@ import com.cobblemon.mod.common.client.battle.ActiveClientBattlePokemon;
 import com.cobblemon.mod.common.client.battle.ClientBattle;
 import com.cobblemon.mod.common.client.battle.ClientBattleActor;
 import com.cobblemon.mod.common.client.battle.ClientBattleSide;
+import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.provismet.cobblemon.lilycobble.networking.battle.BattlePokemonState;
 import com.provismet.cobblemon.lilycobble.networking.battle.BattleSideState;
 import com.provismet.cobblemon.lilycobble.networking.battle.BattleStatePacketS2C;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderTickCounter;
 import org.dystoria.tweaks.gui.battle.PokeballPreviewWidget;
+import org.dystoria.tweaks.gui.battle.TeamPreviewWidget;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,11 +26,11 @@ import java.util.UUID;
 public class BattleHud {
     private static BattleStatePacketS2C state = null;
     private static final Map<UUID, BattlePokemonMemory> memory = new HashMap<>();
-    private static final List<PokeballPreviewWidget> pokeballPreviews = new ArrayList<>();
+    private static final List<TeamPreviewWidget> teamPreviews = List.of(new TeamPreviewWidget(0, 0, true), new TeamPreviewWidget(0, 0, false));
 
-    public static void receivePacket (BattleStatePacketS2C packet, ServerPlayNetworking.Context context) {
+    public static void receivePacket (BattleStatePacketS2C packet, ClientPlayNetworking.Context context) {
         ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
-        if (CobblemonClient.INSTANCE.getBattle() == null) return;
+        if (CobblemonClient.INSTANCE.getBattle() == null || MinecraftClient.getInstance().player == null) return;
         state = packet;
 
         for (BattleSideState side : packet.sides()) {
@@ -43,16 +44,31 @@ public class BattleHud {
             for (ActiveClientBattlePokemon pokemon : side.getActiveClientBattlePokemon()) {
                 if (pokemon.getBattlePokemon() == null) continue;
 
-                UUID uuid = pokemon.getBattlePokemon().getUuid();
-                if (memory.containsKey(uuid)) {
-                    memory.get(uuid).setFormData(pokemon.getBattlePokemon().getProperties().asRenderablePokemon().getForm());
+                BattlePokemonMemory pokemonMemory = memory.get(pokemon.getBattlePokemon().getUuid());
+                if (pokemonMemory != null) {
+                    pokemonMemory.setRenderablePokemon(pokemon.getBattlePokemon().getProperties().asRenderablePokemon());
+                }
+            }
+        }
+
+        if (!battle.getSpectating()) {
+            ClientBattleActor myActor = battle.getParticipatingActor(MinecraftClient.getInstance().player.getUuid());
+            if (myActor != null) {
+                for (Pokemon pokemon : myActor.getPokemon()) { // You always have full information of your own pokemon.
+                    BattlePokemonMemory pokemonMemory = memory.get(pokemon.getUuid());
+                    if (pokemonMemory != null) {
+                        pokemonMemory.setRenderablePokemon(pokemon.asRenderablePokemon());
+                        pokemonMemory.setMoves(pokemon.getMoveSet());
+                    }
                 }
             }
         }
 
         int pokemonCount = packet.sides().stream().mapToInt(side -> side.getPokemon().size()).sum();
-        if (pokeballPreviews.size() != pokemonCount) {
-            pokeballPreviews.clear();
+        int widgetCount = teamPreviews.stream().mapToInt(TeamPreviewWidget::getPartySize).sum();
+        if (widgetCount != pokemonCount) {
+            teamPreviews.forEach(TeamPreviewWidget::clearParty);
+
             packet.sides().forEach(side -> {
                 Optional<ClientBattleActor> anyActor = side.actors()
                     .stream()
@@ -63,11 +79,12 @@ public class BattleHud {
                 if (anyActor.isEmpty()) return; // This should not happen!
                 boolean isLeft = anyActor.get().getSide().equals(battle.getSide1());
 
-                List<BattlePokemonState> team = side.getPokemon();
-                for (int i = 0; i < team.size(); ++i) {
-                    BattlePokemonMemory pokemon = memory.get(team.get(i).uuid());
+                for (BattlePokemonState battlePokemonState : side.getPokemon()) {
+                    BattlePokemonMemory pokemon = memory.get(battlePokemonState.uuid());
                     if (pokemon == null) continue; // Should never happen, but just in case
-                    pokeballPreviews.add(new PokeballPreviewWidget(i, team.size(), isLeft, pokemon));
+
+                    TeamPreviewWidget widget = isLeft ? teamPreviews.getFirst() : teamPreviews.getLast();
+                    widget.addPartyMember(new PokeballPreviewWidget(isLeft, pokemon));
                 }
             });
         }
@@ -77,7 +94,7 @@ public class BattleHud {
         ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
         if (battle == null) {
             memory.clear();
-            pokeballPreviews.clear();
+            teamPreviews.forEach(TeamPreviewWidget::clearParty);
             state = null;
             return;
         }
@@ -89,7 +106,7 @@ public class BattleHud {
             int mouseY = (int)(MinecraftClient.getInstance().mouse.getY() * height / MinecraftClient.getInstance().getWindow().getHeight());
             float tickDelta = counter.getTickDelta(true);
 
-            for (PokeballPreviewWidget widget : pokeballPreviews) {
+            for (TeamPreviewWidget widget : teamPreviews) {
                 widget.realignToScreen();
                 widget.render(context, mouseX, mouseY, tickDelta);
             }
