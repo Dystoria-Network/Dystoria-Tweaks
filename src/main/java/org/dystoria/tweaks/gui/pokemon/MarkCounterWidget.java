@@ -42,7 +42,7 @@ public class MarkCounterWidget extends ClickableWidget {
     }
 
     public void setMarks (@Nullable Pokemon pokemon) {
-        if (pokemon == null) this.marks = 0;
+        if (pokemon == null || pokemon.getStatus() != null) this.marks = 0;
         else this.marks = pokemon.getMarks().size();
     }
 }
