@@ -1,91 +1,474 @@
 package org.dystoria.tweaks.battle;
 
+import com.cobblemon.mod.common.api.abilities.PotentialAbility;
 import com.cobblemon.mod.common.api.gui.GuiUtilsKt;
 import com.cobblemon.mod.common.api.moves.Move;
 import com.cobblemon.mod.common.api.moves.MoveSet;
 import com.cobblemon.mod.common.api.moves.MoveTemplate;
+import com.cobblemon.mod.common.api.moves.Moves;
+import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.cobblemon.mod.common.client.gui.PokemonGuiUtilsKt;
+import com.cobblemon.mod.common.client.gui.TypeIcon;
+import com.cobblemon.mod.common.client.render.RenderHelperKt;
 import com.cobblemon.mod.common.client.render.models.blockbench.FloatingState;
 import com.cobblemon.mod.common.entity.PoseType;
-import com.cobblemon.mod.common.pokemon.FormData;
 import com.cobblemon.mod.common.pokemon.RenderablePokemon;
 import com.cobblemon.mod.common.util.math.QuaternionUtilsKt;
 import com.provismet.cobblemon.lilycobble.networking.battle.BattlePokemonState;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.Language;
+import net.minecraft.util.math.MathHelper;
+import org.dystoria.tweaks.DystoriaTweaksClient;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 public class BattlePokemonMemory {
-    public static final int RENDER_WIDTH = 50;
+    public static final int PANEL_WIDTH = 150;
+    public static final int PANEL_HEIGHT = 100;
+    private static final int FRAME_LENGTH = 28;
+    private static final Identifier PANEL_TEXTURE = DystoriaTweaksClient.identifier("textures/gui/battle/info_panel.png");
+    private static final Identifier PANEL_FRAME_TEXTURE = DystoriaTweaksClient.identifier("textures/gui/battle/info_panel_frame.png");
+    private static final Set<String> SKIP_MOVE_MEMORY = Set.of("metronome", "copycat");
 
-    private final List<MoveTemplate> knownMoves;
-    private BattlePokemonState state;
+    private final UUID uuid;
+    private final List<Move> knownMoves = new ArrayList<>();
+    private double healthPercentage = 1;
+    private double prevHealthPercentage = 1;
+    private String status = null;
+    private String item = null;
+    private String ability = null;
+    private String tempAbility = null;
     private RenderablePokemon renderablePokemon;
+    private String lastMove;
+    private boolean active;
 
-    public BattlePokemonMemory (BattlePokemonState state) {
-        this.state = state;
-        this.knownMoves = new ArrayList<>();
+    public BattlePokemonMemory (UUID uuid) {
+        this.uuid = uuid;
     }
 
-    public BattlePokemonState getState () {
-        return this.state;
+    public UUID getUuid () {
+        return this.uuid;
     }
 
     public void setState (BattlePokemonState state) {
-        this.state = state;
+        if (state.moves().isPresent()) {
+            state.moves().get()
+                .stream()
+                .map(Moves::getByName)
+                .filter(Objects::nonNull)
+                .map(template -> template.create(template.getMaxPp(), 3))
+                .forEach(this::addMove);
+        }
+        this.healthPercentage = state.healthPercentage();
+        this.status = state.status().orElse(null);
+        if (state.item().isPresent()) this.item = state.item().get();
+        if (state.pokemonProperties().isPresent()) {
+            PokemonProperties props = state.pokemonProperties().get().toPokemonProperties();
+            if (props.hasSpecies()) this.renderablePokemon = props.asRenderablePokemon();
+            if (props.getAbility() != null) this.ability = props.getAbility();
+        }
     }
 
     public void setRenderablePokemon (RenderablePokemon renderablePokemon) {
         this.renderablePokemon = renderablePokemon;
     }
 
-    public List<MoveTemplate> getKnownMoves () {
-        return this.knownMoves;
+    public boolean isActive () {
+        return this.active;
+    }
+
+    public void setActive (boolean active) {
+        this.active = active;
     }
 
     public void setMoves (MoveSet moves) {
         this.knownMoves.clear();
-        for (Move move : moves) {
-            this.knownMoves.add(move.getTemplate());
+        moves.forEach(this.knownMoves::add);
+        while (this.knownMoves.size() < 4) {
+            this.knownMoves.add(MoveTemplate.Companion.dummy("empty").create());
         }
     }
 
-    public void addMove (MoveTemplate move) {
+    public void addMove (Move move) {
         if (this.knownMoves.size() < 4 && this.knownMoves.stream().noneMatch(template -> template.getName().equalsIgnoreCase(move.getName()))) {
             this.knownMoves.add(move);
         }
     }
 
+    public void useMove (String move) {
+        if (this.lastMove != null && SKIP_MOVE_MEMORY.contains(this.lastMove)) {
+            this.lastMove = move;
+            return;
+        }
+        this.lastMove = move;
+
+        Optional<Move> existing = this.knownMoves.stream()
+            .filter(move1 -> move1.getName().equalsIgnoreCase(move))
+            .findAny();
+
+        if (existing.isPresent()) {
+            existing.get().setCurrentPp(existing.get().getCurrentPp() - 1);
+        }
+        else {
+            MoveTemplate template = Moves.getByNameOrDummy(move);
+            Move realMove = template.create(template.getMaxPp(), 3);
+            this.addMove(realMove);
+        }
+    }
+
+    public Move getMove (int index) {
+        if (index >= this.knownMoves.size()) return MoveTemplate.Companion.dummy("unknown").create();
+        return this.knownMoves.get(index);
+    }
+
+    public double lerpHealthPercentage (double tickDelta) {
+        return MathHelper.lerp(tickDelta, this.prevHealthPercentage, this.healthPercentage);
+    }
+
+    public double getHealthPercentage () {
+        return this.healthPercentage;
+    }
+
+    public void setHealthPercentage (double healthPercentage) {
+        this.prevHealthPercentage = this.healthPercentage;
+        this.healthPercentage = Math.clamp(healthPercentage, 0, 1);
+    }
+
+    public boolean isAlive () {
+        return this.healthPercentage > 0;
+    }
+
+    public void setStatus (String status) {
+        this.status = status;
+    }
+
+    public boolean hasStatus () {
+        return this.status != null;
+    }
+
+    public String getItem () {
+        return this.item;
+    }
+
+    public void setItem (String item) {
+        this.item = item;
+    }
+
+    public String getAbility () {
+        return this.ability;
+    }
+
+    public void setAbility (String ability) {
+        this.ability = ability;
+    }
+
+    public void setTempAbility (String tempAbility) {
+        this.tempAbility = tempAbility;
+    }
+
     public void render (DrawContext context, int x, int y, float tickDelta, boolean isLeft) {
         if (this.renderablePokemon == null) {
+            // TODO: what do I render here?
             GuiUtilsKt.drawText(context, Text.literal("pokemon: ???"), x + 15, y, Colors.WHITE);
             return;
         }
 
-        MutableText text = Text.literal("pokemon: ").append(this.renderablePokemon.getForm().showdownId());
-        GuiUtilsKt.drawText(context, text, x + 15, y, Colors.WHITE);
+        // All Text
+        {
+            context.getMatrices().push();
+            context.getMatrices().translate(0, 0, 100);
 
-        context.getMatrices().push();
-        context.getMatrices().translate(x + 20, y + 10, 0);
-        PokemonGuiUtilsKt.drawProfilePokemon(
-            this.renderablePokemon,
-            context.getMatrices(),
-            QuaternionUtilsKt.fromEulerXYZDegrees(new Quaternionf(), new Vector3f(13f, isLeft ? -35f : 35f, 0f)),
-            PoseType.PROFILE,
-            new FloatingState(),
-            tickDelta,
-            16f,
+            Text species = Text.translatable("cobblemon.species." + this.renderablePokemon.getSpecies().resourceIdentifier.getPath() + ".name");
+            context.drawText(
+                MinecraftClient.getInstance().textRenderer,
+                species,
+                x + 30,
+                y + 4,
+                Colors.WHITE,
+                true
+            );
+            this.renderForm(context, x, y);
+            this.renderItem(context, x, y);
+            this.renderAbility(context, x, y);
+            this.renderMoves(context, x, y);
+            context.getMatrices().pop();
+        }
+
+        context.drawTexture(PANEL_TEXTURE, x, y, 0, 0, PANEL_WIDTH, PANEL_HEIGHT, PANEL_WIDTH, PANEL_HEIGHT);
+        // Frame
+        {
+            context.getMatrices().push();
+            context.enableScissor(x + 4, y + 4, x + 23, y + 23);
+            context.getMatrices().translate(x + 15, y - 5, 0);
+            PokemonGuiUtilsKt.drawProfilePokemon(
+                this.renderablePokemon,
+                context.getMatrices(),
+                QuaternionUtilsKt.fromEulerXYZDegrees(new Quaternionf(), new Vector3f(13f, isLeft ? -35f : 35f, 0f)),
+                PoseType.PROFILE,
+                new FloatingState(),
+                tickDelta,
+                16f,
+                true,
+                false,
+                1f, 1f, 1f, 1f,
+                0f, 0f
+            );
+            context.disableScissor();
+            context.getMatrices().pop();
+            context.drawTexture(PANEL_FRAME_TEXTURE, x, y, 1000, 0, 0, FRAME_LENGTH, FRAME_LENGTH, FRAME_LENGTH, FRAME_LENGTH);
+        }
+
+        // Types
+        {
+            context.getMatrices().push();
+            final float scale = 1.4f;
+            context.getMatrices().scale(scale, scale, 1);
+            new TypeIcon(
+                (x + 16) / scale, (y + 30) / scale,
+                this.renderablePokemon.getForm().getPrimaryType(),
+                this.renderablePokemon.getForm().getSecondaryType(),
+                true,
+                true,
+                7f,
+                3.5f,
+                1f
+            ).render(context);
+            context.getMatrices().pop();
+        }
+    }
+
+    private MutableText getMoveName (Move template) {
+        if (template.getName().equalsIgnoreCase("unknown")) return Text.translatable("gui.battle.dystoria-tweaks.field.unknown");
+        if (template.getName().equalsIgnoreCase("empty")) return Text.translatable("gui.battle.dystoria-tweaks.field.empty");
+        return Text.translatableWithFallback("cobblemon.move." + template.getName(), template.getName());
+    }
+
+    private void renderForm (DrawContext context, int x, int y) {
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            Text.translatable("gui.battle.dystoria-tweaks.form"),
+            x + 86.5, y + 16.5,
+            0.5f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.ALTERNATE_WHITE,
             true,
             false,
-            1f, 1f, 1f, 1f,
-            0f, 0f
+            null, null
         );
-        context.getMatrices().pop();
+
+        MutableText formName;
+        if (this.renderablePokemon.getForm().formOnlyShowdownId().equalsIgnoreCase("normal")){
+            formName = Text.translatable("gui.battle.dystoria-tweaks.field.empty");
+        }
+        else {
+            formName = Text.translatableWithFallback("cobblemon.ui.pokedex.info.form." + this.renderablePokemon.getSpecies().showdownId() + "-" + this.renderablePokemon.getForm().formOnlyShowdownId(), this.renderablePokemon.getForm().formOnlyShowdownId());
+        }
+
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            formName,
+            x + 86.5, y + 23,
+            0.75f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.WHITE,
+            true,
+            true,
+            null, null
+        );
+    }
+
+    private void renderItem (DrawContext context, int x, int y) {
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            Text.translatable("gui.battle.dystoria-tweaks.item"),
+            x + 86.5, y + 30.5,
+            0.5f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.ALTERNATE_WHITE,
+            true,
+            false,
+            null, null
+        );
+
+        MutableText item = Text.translatable("gui.battle.dystoria-tweaks.field.unknown");
+        if (this.item != null) {
+            if (this.item.isEmpty()) {
+                item = Text.translatable("gui.battle.dystoria-tweaks.field.empty");
+            }
+            else {
+                Language lang = Language.getInstance();
+                if (lang.hasTranslation("item.cobblemon." + this.item)) item = Text.translatable("item.cobblemon." + this.item);
+                else item = Text.translatableWithFallback("item.dystorianitems." + this.item, this.item);
+            }
+        }
+
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            item,
+            x + 86.5, y + 36.5,
+            0.75f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.WHITE,
+            true,
+            true,
+            null, null
+        );
+    }
+
+    private void renderAbility (DrawContext context, int x, int y) {
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            Text.translatable("gui.battle.dystoria-tweaks.ability"),
+            x + 75, y + 44.5,
+            0.5f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.ALTERNATE_WHITE,
+            true,
+            false,
+            null, null
+        );
+
+        MutableText ability = null;
+        if (this.ability != null) {
+            if (this.tempAbility != null) {
+                ability = Text.translatable(
+                    "gui.battle.dystoria-tweaks.ability.temp",
+                    Text.translatableWithFallback("cobblemon.ability." + this.ability, this.ability),
+                    Text.translatableWithFallback("cobblemon.ability." + this.tempAbility, this.tempAbility)
+                );
+            }
+            else {
+                ability = Text.translatableWithFallback("cobblemon.ability." + this.ability, this.ability);
+            }
+        }
+        else if (this.tempAbility != null) {
+            ability = Text.translatable(
+                "gui.battle.dystoria-tweaks.ability.temp",
+                Text.translatable("gui.battle.dystoria-tweaks.field.unknown"),
+                Text.translatableWithFallback("cobblemon.ability." + this.tempAbility, this.tempAbility)
+            );
+        }
+
+        if (ability == null) {
+            ability = Text.empty();
+            Iterator<PotentialAbility> iterator = this.renderablePokemon.getForm().getAbilities().iterator();
+            while (iterator.hasNext()) {
+                PotentialAbility potentialAbility = iterator.next();
+                ability.append(Text.translatableWithFallback(potentialAbility.getTemplate().getDisplayName(), potentialAbility.getTemplate().getName()));
+
+                if (iterator.hasNext()) {
+                    ability.append(" / ");
+                }
+            }
+        }
+
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            ability,
+            x + 75, y + 51,
+            0.75f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.WHITE,
+            true,
+            true,
+            null, null
+        );
+    }
+
+    private void renderMoves (DrawContext context, int x, int y) {
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            Text.translatable("gui.battle.dystoria-tweaks.moves"),
+            x + 75, y + 64.5,
+            0.5f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.ALTERNATE_WHITE,
+            true,
+            false,
+            null, null
+        );
+
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            this.getMoveName(this.getMove(0)),
+            x + 39.5, y + 70.5,
+            0.75f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.WHITE,
+            true,
+            true,
+            null, null
+        );
+
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            this.getMoveName(this.getMove(1)),
+            x + 110.5, y + 70.5,
+            0.75f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.WHITE,
+            true,
+            true,
+            null, null
+        );
+
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            this.getMoveName(this.getMove(2)),
+            x + 39.5, y + 81.5,
+            0.75f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.WHITE,
+            true,
+            true,
+            null, null
+        );
+
+        RenderHelperKt.drawScaledText(
+            context,
+            null,
+            this.getMoveName(this.getMove(3)),
+            x + 110.5, y + 81.5,
+            0.75f,
+            1f,
+            Integer.MAX_VALUE,
+            Colors.WHITE,
+            true,
+            true,
+            null, null
+        );
     }
 }

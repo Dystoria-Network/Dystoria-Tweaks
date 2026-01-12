@@ -18,5 +18,14 @@ public class LanguageGenerator extends FabricLanguageProvider {
 
         translationBuilder.add("gui.dystoria-tweaks.mark_counter", "Mark Counter");
         translationBuilder.add("tooltip.dystoria-tweaks.mark_counter", "Marks: %1$s");
+
+        translationBuilder.add("gui.battle.dystoria-tweaks.form", "Form");
+        translationBuilder.add("gui.battle.dystoria-tweaks.item", "Item");
+        translationBuilder.add("gui.battle.dystoria-tweaks.ability", "Ability");
+        translationBuilder.add("gui.battle.dystoria-tweaks.ability.temp", "%1$s (%2$s)");
+        translationBuilder.add("gui.battle.dystoria-tweaks.moves", "Moves");
+
+        translationBuilder.add("gui.battle.dystoria-tweaks.field.empty", "---");
+        translationBuilder.add("gui.battle.dystoria-tweaks.field.unknown", "???");
     }
 }
