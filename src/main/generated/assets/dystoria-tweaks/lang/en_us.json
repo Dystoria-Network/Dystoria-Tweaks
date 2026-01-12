@@ -1,4 +1,11 @@
 {
+  "gui.battle.dystoria-tweaks.ability": "Ability",
+  "gui.battle.dystoria-tweaks.ability.temp": "%1$s (%2$s)",
+  "gui.battle.dystoria-tweaks.field.empty": "---",
+  "gui.battle.dystoria-tweaks.field.unknown": "???",
+  "gui.battle.dystoria-tweaks.form": "Form",
+  "gui.battle.dystoria-tweaks.item": "Item",
+  "gui.battle.dystoria-tweaks.moves": "Moves",
   "gui.dystoria-tweaks.mark_counter": "Mark Counter",
   "gui.dystoria-tweaks.tera": "Tera Type",
   "tooltip.dystoria-tweaks.mark_counter": "Marks: %1$s",

@@ -10,6 +10,7 @@ import org.dystoria.tweaks.DystoriaTweaksClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class TeamPreviewWidget extends ClickableWidget {
     public static final int BORDER_HEIGHT = 10;
@@ -52,6 +53,10 @@ public class TeamPreviewWidget extends ClickableWidget {
     public void addPartyMember (PokeballPreviewWidget widget) {
         this.party.add(widget);
         this.height += PokeballPreviewWidget.HEIGHT;
+    }
+
+    public boolean hasPartyMember (UUID uuid) {
+        return this.party.stream().anyMatch(widget -> widget.getBattleMemory().getUuid().equals(uuid));
     }
 
     public void clearParty () {
