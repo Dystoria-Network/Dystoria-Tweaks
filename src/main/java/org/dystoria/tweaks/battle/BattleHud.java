@@ -1,5 +1,6 @@
 package org.dystoria.tweaks.battle;
 
+import com.cobblemon.mod.common.CobblemonItems;
 import com.cobblemon.mod.common.client.CobblemonClient;
 import com.cobblemon.mod.common.client.battle.ActiveClientBattlePokemon;
 import com.cobblemon.mod.common.client.battle.ClientBattle;
@@ -26,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public class BattleHud {
@@ -33,6 +35,22 @@ public class BattleHud {
     private static int prevTime = 0;
     private static final Map<UUID, BattlePokemonMemory> memory = new HashMap<>();
     private static final List<TeamPreviewWidget> teamPreviews = List.of(new TeamPreviewWidget(0, 0, true), new TeamPreviewWidget(0, 0, false));
+
+    // Item Translation Key Handling
+
+    /**
+     * Arg1 is the user, Arg2 is the item
+     */
+    private static final Set<String> twoArgItemText = Set.of(
+        "cobblemon.battle.item.airballoon",
+        "cobblemon.battle.item.recycle",
+        "cobblemon.battle.item.harvest",
+        "cobblemon.battle.item.frisk",
+        "cobblemon.battle.item.bestow",
+        "cobblemon.battle.heal.leftovers",
+        "cobblemon.battle.heal.item",
+        "cobblemon.battle.damage.item"
+    );
 
     public static void receivePacket (BattleStatePacketS2C packet, ClientPlayNetworking.Context context) {
         ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
@@ -126,7 +144,7 @@ public class BattleHud {
                     }
                     else if (pokemonMemory.getItem() == null) { // Too many weird edge cases involving items, the packets will always be correct so skip this if its already been done.
                         if (pokemon.heldItem().getTranslationKey().contains("cobblemon")) { // User is holding a known Cobblemon item
-                            pokemonMemory.setItem(pokemon.heldItem().getTranslationKey().replace("item.cobblemon.", ""));
+                            pokemonMemory.setItem(pokemon.heldItem().getTranslationKey());
                         }
                         else { // This is most likely a Polymer custom item
                             pokemonMemory.setItem(pokemon.heldItem().getName().getString().toLowerCase(Locale.ROOT).replace(" ", ""));
@@ -223,6 +241,52 @@ public class BattleHud {
                         }
                     }
                 }
+                else if (content.getKey().contains("cobblemon.battle.enditem.") && content.getArgs().length > 0) {
+                    OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                    if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                        BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                        mem.setConsumedItem(true);
+                    }
+                }
+                else { // There is nothing consistent for items
+                    if (twoArgItemText.contains(content.getKey()) && content.getArgs().length >= 2) {
+                        String item;
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+
+                        if (content.getArgs()[1] instanceof Text itemText) {
+                            if (itemText.getContent() instanceof TranslatableTextContent itemContent) {
+                                item = itemContent.getKey();
+                            }
+                            else {
+                                item = itemText.getString();
+                            }
+                        }
+                        else item = content.getArgs()[1].toString();
+
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            mem.setItem(item);
+                        }
+                    }
+                    else if (content.getKey().equalsIgnoreCase("cobblemon.battle.damage.rockyhelmet") && content.getArgs().length >= 2) {
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[1]);
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            mem.setItem(CobblemonItems.ROCKY_HELMET);
+                        }
+                    }
+                    else if (content.getKey().equalsIgnoreCase("cobblemon.battle.damage.lifeorb") && content.getArgs().length >= 1) {
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            mem.setItem(CobblemonItems.ROCKY_HELMET);
+                        }
+                    }
+                }
             }
         }
     }
@@ -256,6 +320,10 @@ public class BattleHud {
         }
     }
 
+    private static ActiveClientBattlePokemon getPokemon (ClientBattle battle, OwnedPokemon pokemon) {
+        return getPokemon(battle, pokemon.pokemon, pokemon.owner);
+    }
+
     private static ActiveClientBattlePokemon getPokemon (ClientBattle battle, String name, String owner) {
         for (ClientBattleSide side : battle.getSides()) {
             for (ActiveClientBattlePokemon pokemon : side.getActiveClientBattlePokemon()) {
@@ -269,5 +337,32 @@ public class BattleHud {
             }
         }
         return null;
+    }
+
+    private record OwnedPokemon (String pokemon, String owner) {
+        private static OwnedPokemon fromTextArg (Object arg) {
+            String pokemon;
+            String owner;
+
+            if (arg instanceof Text text && text.getContent() instanceof TranslatableTextContent content) {
+                if (content.getArgs().length >= 2) {
+                    if (content.getArgs()[0] instanceof Text ownerText) owner = ownerText.getString();
+                    else owner = content.getArgs()[0].toString();
+
+                    if (content.getArgs()[1] instanceof Text pokemonText) pokemon = pokemonText.getString();
+                    else pokemon = content.getArgs()[1].toString();
+                }
+                else {
+                    pokemon = text.getString();
+                    owner = text.getString();
+                }
+            }
+            else {
+                pokemon = arg.toString();
+                owner = arg.toString();
+            }
+
+            return new OwnedPokemon(pokemon, owner);
+        }
     }
 }
