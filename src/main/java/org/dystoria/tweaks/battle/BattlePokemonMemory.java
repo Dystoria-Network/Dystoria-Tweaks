@@ -12,10 +12,12 @@ import com.cobblemon.mod.common.client.gui.TypeIcon;
 import com.cobblemon.mod.common.client.render.RenderHelperKt;
 import com.cobblemon.mod.common.client.render.models.blockbench.FloatingState;
 import com.cobblemon.mod.common.entity.PoseType;
+import com.cobblemon.mod.common.item.CobblemonItem;
 import com.cobblemon.mod.common.pokemon.RenderablePokemon;
 import com.cobblemon.mod.common.util.math.QuaternionUtilsKt;
 import com.provismet.cobblemon.lilycobble.networking.battle.BattlePokemonState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -54,6 +56,7 @@ public class BattlePokemonMemory {
     private RenderablePokemon renderablePokemon;
     private String lastMove;
     private boolean active;
+    private boolean consumedItem = false;
 
     public BattlePokemonMemory (UUID uuid) {
         this.uuid = uuid;
@@ -165,6 +168,14 @@ public class BattlePokemonMemory {
 
     public void setItem (String item) {
         this.item = item;
+    }
+
+    public void setItem (CobblemonItem item) {
+        this.item = item.getTranslationKey();
+    }
+
+    public void setConsumedItem (boolean consumedItem) {
+        this.consumedItem = consumedItem;
     }
 
     public String getAbility () {
@@ -309,17 +320,20 @@ public class BattlePokemonMemory {
             null, null
         );
 
-        MutableText item = Text.translatable("gui.battle.dystoria-tweaks.field.unknown");
-        if (this.item != null) {
+        MutableText item;
+        if (this.consumedItem) item = Text.translatable("gui.battle.dystoria-tweaks.field.empty");
+        else if (this.item != null) {
             if (this.item.isEmpty()) {
                 item = Text.translatable("gui.battle.dystoria-tweaks.field.empty");
             }
             else {
                 Language lang = Language.getInstance();
-                if (lang.hasTranslation("item.cobblemon." + this.item)) item = Text.translatable("item.cobblemon." + this.item);
+                if (lang.hasTranslation(this.item)) item = Text.translatable(this.item);
+                else if (lang.hasTranslation("item.cobblemon." + this.item)) item = Text.translatable("item.cobblemon." + this.item);
                 else item = Text.translatableWithFallback("item.dystorianitems." + this.item, this.item);
             }
         }
+        else item = Text.translatable("gui.battle.dystoria-tweaks.field.unknown");
 
         RenderHelperKt.drawScaledText(
             context,
@@ -385,12 +399,14 @@ public class BattlePokemonMemory {
             }
         }
 
+        float scale = MinecraftClient.getInstance().textRenderer.getWidth(ability) > 139 ? 0.5f : 0.75f;
+
         RenderHelperKt.drawScaledText(
             context,
             null,
             ability,
             x + 75, y + 51,
-            0.75f,
+            scale,
             1f,
             Integer.MAX_VALUE,
             Colors.WHITE,
@@ -401,6 +417,8 @@ public class BattlePokemonMemory {
     }
 
     private void renderMoves (DrawContext context, int x, int y) {
+        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+
         RenderHelperKt.drawScaledText(
             context,
             null,
@@ -415,12 +433,14 @@ public class BattlePokemonMemory {
             null, null
         );
 
+        MutableText move1 = this.getMoveName(this.getMove(0));
+        float scale1 = textRenderer.getWidth(move1) > 68 ? 0.5f : 0.75f;
         RenderHelperKt.drawScaledText(
             context,
             null,
-            this.getMoveName(this.getMove(0)),
+            move1,
             x + 39.5, y + 70.5,
-            0.75f,
+            scale1,
             1f,
             Integer.MAX_VALUE,
             Colors.WHITE,
@@ -429,12 +449,14 @@ public class BattlePokemonMemory {
             null, null
         );
 
+        MutableText move2 = this.getMoveName(this.getMove(1));
+        float scale2 = textRenderer.getWidth(move2) > 68 ? 0.5f : 0.75f;
         RenderHelperKt.drawScaledText(
             context,
             null,
-            this.getMoveName(this.getMove(1)),
+            move2,
             x + 110.5, y + 70.5,
-            0.75f,
+            scale2,
             1f,
             Integer.MAX_VALUE,
             Colors.WHITE,
@@ -443,12 +465,14 @@ public class BattlePokemonMemory {
             null, null
         );
 
+        MutableText move3 = this.getMoveName(this.getMove(2));
+        float scale3 = textRenderer.getWidth(move3) > 68 ? 0.5f : 0.75f;
         RenderHelperKt.drawScaledText(
             context,
             null,
-            this.getMoveName(this.getMove(2)),
+            move3,
             x + 39.5, y + 81.5,
-            0.75f,
+            scale3,
             1f,
             Integer.MAX_VALUE,
             Colors.WHITE,
@@ -457,12 +481,14 @@ public class BattlePokemonMemory {
             null, null
         );
 
+        MutableText move4 = this.getMoveName(this.getMove(3));
+        float scale4 = textRenderer.getWidth(move4) > 68 ? 0.5f : 0.75f;
         RenderHelperKt.drawScaledText(
             context,
             null,
-            this.getMoveName(this.getMove(3)),
+            move4,
             x + 110.5, y + 81.5,
-            0.75f,
+            scale4,
             1f,
             Integer.MAX_VALUE,
             Colors.WHITE,
