@@ -256,7 +256,7 @@ public class BattleHud {
                         ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
                         if (pokemon != null && pokemon.getBattlePokemon() != null) {
                             BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
-                            mem.setItem(CobblemonItems.ROCKY_HELMET);
+                            mem.setItem(CobblemonItems.LIFE_ORB);
                         }
                     }
                 }
