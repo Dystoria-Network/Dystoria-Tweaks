@@ -179,46 +179,19 @@ public class BattleHud {
                         && moveArg instanceof Text moveText
                         && moveText.getContent() instanceof TranslatableTextContent argContent
                     ) {
-                        String ownerName;
-                        String pokemonName;
-                        if (userContent.getArgs().length >= 2) {
-                            ownerName = userContent.getArgs()[0].toString();
-                            if (userContent.getArgs()[1] instanceof Text pkText) pokemonName = pkText.getString();
-                            else pokemonName = userContent.getArgs()[1].toString();
-                        }
-                        else {
-                            ownerName = userText.getString();
-                            pokemonName = userText.getString();
-                        }
-
-                        ActiveClientBattlePokemon pokemon = getPokemon(battle, pokemonName, ownerName);
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(userArg);
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
                         if (pokemon == null || pokemon.getBattlePokemon() == null) return;
 
-                        BattlePokemonMemory mem = memory.get(pokemon.getBattlePokemon().getUuid());
-                        if (mem != null) {
-                            mem.useMove(argContent.getKey().replace("cobblemon.move.", ""));
-                        }
+                        BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                        mem.useMove(argContent.getKey().replace("cobblemon.move.", ""));
                     }
                 }
                 else if (content.getKey().contains("cobblemon.battle.ability.") && content.getArgs().length >= 1) {
-                    Object userArg = content.getArgs()[0];
-                    String userName = "";
-                    String ownerName = "";
-
-                    if (userArg instanceof Text userText && userText.getContent() instanceof TranslatableTextContent userContent) {
-                        if (userContent.getArgs().length >= 2) {
-                            ownerName = userContent.getArgs()[0].toString();
-                            if (userContent.getArgs()[1] instanceof Text pkText) userName = pkText.getString();
-                            else userName = userContent.getArgs()[1].toString();
-                        }
-                        else {
-                            ownerName = userText.getString();
-                            userName = userText.getString();
-                        }
-                    }
+                    OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
 
                     if (content.getKey().contains("generic") && content.getArgs().length >= 2) {
-                        ActiveClientBattlePokemon pokemon = getPokemon(battle, userName, ownerName);
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
                         if (pokemon != null && pokemon.getBattlePokemon() != null) {
                             BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
                             if (mem.getAbility() == null) {
@@ -227,14 +200,14 @@ public class BattleHud {
                         }
                     }
                     else if (content.getKey().contains("trace") && content.getArgs().length >= 3) {
-                        ActiveClientBattlePokemon pokemon = getPokemon(battle, userName, ownerName);
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
                         if (pokemon != null && pokemon.getBattlePokemon() != null) {
                             BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
                             mem.setTempAbility(content.getArgs()[2].toString());
                         }
                     }
                     else if ((content.getKey().contains("replace") || content.getKey().contains("receiver")) && content.getArgs().length >= 2) {
-                        ActiveClientBattlePokemon pokemon = getPokemon(battle, userName, ownerName);
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
                         if (pokemon != null && pokemon.getBattlePokemon() != null) {
                             BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
                             mem.setTempAbility(content.getArgs()[1].toString());
