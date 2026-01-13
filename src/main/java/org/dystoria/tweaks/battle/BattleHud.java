@@ -317,8 +317,8 @@ public class BattleHud {
             String pokemon;
             String owner;
 
-            if (arg instanceof Text text && text.getContent() instanceof TranslatableTextContent content) {
-                if (content.getArgs().length >= 2) {
+            if (arg instanceof Text text) {
+                if (text.getContent() instanceof TranslatableTextContent content && content.getArgs().length >= 2) {
                     if (content.getArgs()[0] instanceof Text ownerText) owner = ownerText.getString();
                     else owner = content.getArgs()[0].toString();
 
