@@ -161,7 +161,10 @@ public class BattleHud {
         }
 
         for (Map.Entry<UUID, BattlePokemonMemory> entry : memory.entrySet()) {
-            if (!entry.getValue().isActive()) entry.getValue().setTempAbility(null);
+            if (!entry.getValue().isActive()) {
+                entry.getValue().setTempAbility(null);
+                entry.getValue().setTransformed(false);
+            }
         }
     }
 
@@ -194,7 +197,7 @@ public class BattleHud {
                         ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
                         if (pokemon != null && pokemon.getBattlePokemon() != null) {
                             BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
-                            if (mem.getAbility() == null) {
+                            if (mem.getAbility() == null && !mem.isTransformed()) {
                                 mem.setAbility(content.getArgs()[1].toString());
                             }
                         }
@@ -204,6 +207,14 @@ public class BattleHud {
                         if (pokemon != null && pokemon.getBattlePokemon() != null) {
                             BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
                             mem.setTempAbility(content.getArgs()[2].toString());
+                        }
+
+                        ActiveClientBattlePokemon target = getPokemon(battle, OwnedPokemon.fromTextArg(content.getArgs()[1]));
+                        if (target != null && target.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(target.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            if (mem.getAbility() != null && !mem.isTransformed()) {
+                                mem.setAbility(content.getArgs()[2].toString());
+                            }
                         }
                     }
                     else if ((content.getKey().contains("replace") || content.getKey().contains("receiver")) && content.getArgs().length >= 2) {
@@ -220,6 +231,14 @@ public class BattleHud {
                     if (pokemon != null && pokemon.getBattlePokemon() != null) {
                         BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
                         mem.setConsumedItem(true);
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.transform") && content.getArgs().length > 0) {
+                    OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                    if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                        BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                        mem.setTransformed(true);
                     }
                 }
                 else { // There is nothing consistent for items

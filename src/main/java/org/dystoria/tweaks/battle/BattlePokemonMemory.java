@@ -57,6 +57,7 @@ public class BattlePokemonMemory {
     private String lastMove;
     private boolean active;
     private boolean consumedItem = false;
+    private boolean transformed = false;
 
     public BattlePokemonMemory (UUID uuid) {
         this.uuid = uuid;
@@ -114,6 +115,9 @@ public class BattlePokemonMemory {
     public void useMove (String move) {
         if (this.lastMove != null && SKIP_MOVE_MEMORY.contains(this.lastMove)) {
             this.lastMove = move;
+            return;
+        }
+        else if (this.transformed) {
             return;
         }
         this.lastMove = move;
@@ -188,6 +192,14 @@ public class BattlePokemonMemory {
 
     public void setTempAbility (String tempAbility) {
         this.tempAbility = tempAbility;
+    }
+
+    public boolean isTransformed () {
+        return this.transformed;
+    }
+
+    public void setTransformed (boolean transformed) {
+        this.transformed = transformed;
     }
 
     public void render (DrawContext context, int x, int y, float tickDelta, boolean isLeft) {
