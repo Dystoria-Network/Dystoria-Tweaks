@@ -12,10 +12,12 @@ import org.jetbrains.annotations.Nullable;
 
 public class MarkCounterWidget extends ClickableWidget {
     private static final Identifier TEXTURE = DystoriaTweaksClient.identifier("textures/gui/mark_counter.png");
+    private static final Identifier TEXTURE_STATUS = DystoriaTweaksClient.identifier("textures/gui/mark_counter_status.png");
     private static final int WIDTH = 23;
     private static final int HEIGHT = 7;
 
     private int marks = 0;
+    private boolean hasStatus = false;
 
     public MarkCounterWidget (int x, int y) {
         super(x, y, WIDTH, HEIGHT, Text.translatable("gui.dystoria-tweaks.mark_counter"));
@@ -25,9 +27,19 @@ public class MarkCounterWidget extends ClickableWidget {
     protected void renderWidget (DrawContext context, int mouseX, int mouseY, float delta) {
         if (this.marks == 0) return;
 
-        context.drawTexture(TEXTURE, this.getX(), this.getY(), 0, 0, WIDTH, HEIGHT, WIDTH, HEIGHT);
-        if (this.isHovered()) {
-            context.drawTooltip(MinecraftClient.getInstance().textRenderer, Text.translatable("tooltip.dystoria-tweaks.mark_counter", this.marks), mouseX, mouseY);
+        if (this.hasStatus) {
+            int x = this.getX() - 28;
+            int y = this.getY() - HEIGHT;
+            context.drawTexture(TEXTURE_STATUS, x, y, 0, 0, WIDTH, HEIGHT, WIDTH, HEIGHT);
+            if (mouseX > x && mouseX < x + WIDTH && mouseY > y && mouseY < y + HEIGHT) {
+                context.drawTooltip(MinecraftClient.getInstance().textRenderer, Text.translatable("tooltip.dystoria-tweaks.mark_counter", this.marks), mouseX, mouseY);
+            }
+        }
+        else {
+            context.drawTexture(TEXTURE, this.getX(), this.getY(), 0, 0, WIDTH, HEIGHT, WIDTH, HEIGHT);
+            if (this.isHovered() && !this.hasStatus) {
+                context.drawTooltip(MinecraftClient.getInstance().textRenderer, Text.translatable("tooltip.dystoria-tweaks.mark_counter", this.marks), mouseX, mouseY);
+            }
         }
     }
 
@@ -42,7 +54,13 @@ public class MarkCounterWidget extends ClickableWidget {
     }
 
     public void setMarks (@Nullable Pokemon pokemon) {
-        if (pokemon == null || pokemon.getStatus() != null) this.marks = 0;
-        else this.marks = pokemon.getMarks().size();
+        if (pokemon == null) {
+            this.marks = 0;
+            this.hasStatus = false;
+        }
+        else {
+            this.marks = pokemon.getMarks().size();
+            this.hasStatus = pokemon.getStatus() != null;
+        }
     }
 }
