@@ -203,18 +203,15 @@ public class BattlePokemonMemory {
     }
 
     public void render (DrawContext context, int x, int y, float tickDelta, boolean isLeft) {
-        if (this.renderablePokemon == null) {
-            // TODO: what do I render here?
-            GuiUtilsKt.drawText(context, Text.literal("pokemon: ???"), x + 15, y, Colors.WHITE);
-            return;
-        }
-
         // All Text
         {
             context.getMatrices().push();
             context.getMatrices().translate(0, 0, 100);
 
-            Text species = Text.translatable("cobblemon.species." + this.renderablePokemon.getSpecies().resourceIdentifier.getPath() + ".name");
+            Text species;
+            if (this.renderablePokemon != null) species = Text.translatable("cobblemon.species." + this.renderablePokemon.getSpecies().resourceIdentifier.getPath() + ".name");
+            else species = Text.translatable("gui.battle.dystoria-tweaks.field.unknown");
+
             context.drawText(
                 MinecraftClient.getInstance().textRenderer,
                 species,
@@ -236,26 +233,28 @@ public class BattlePokemonMemory {
             context.getMatrices().push();
             context.enableScissor(x + 4, y + 4, x + 23, y + 23);
             context.getMatrices().translate(x + 15, y - 5, 0);
-            PokemonGuiUtilsKt.drawProfilePokemon(
-                this.renderablePokemon,
-                context.getMatrices(),
-                QuaternionUtilsKt.fromEulerXYZDegrees(new Quaternionf(), new Vector3f(13f, isLeft ? -35f : 35f, 0f)),
-                PoseType.PROFILE,
-                new FloatingState(),
-                tickDelta,
-                16f,
-                true,
-                false,
-                1f, 1f, 1f, 1f,
-                0f, 0f
-            );
+            if (this.renderablePokemon != null) {
+                PokemonGuiUtilsKt.drawProfilePokemon(
+                    this.renderablePokemon,
+                    context.getMatrices(),
+                    QuaternionUtilsKt.fromEulerXYZDegrees(new Quaternionf(), new Vector3f(13f, isLeft ? -35f : 35f, 0f)),
+                    PoseType.PROFILE,
+                    new FloatingState(),
+                    tickDelta,
+                    16f,
+                    true,
+                    false,
+                    1f, 1f, 1f, 1f,
+                    0f, 0f
+                );
+            }
             context.disableScissor();
             context.getMatrices().pop();
             context.drawTexture(PANEL_FRAME_TEXTURE, x, y, 1000, 0, 0, FRAME_LENGTH, FRAME_LENGTH, FRAME_LENGTH, FRAME_LENGTH);
         }
 
         // Types
-        {
+        if (this.renderablePokemon != null) {
             context.getMatrices().push();
             final float scale = 1.4f;
             context.getMatrices().scale(scale, scale, 1);
@@ -302,7 +301,10 @@ public class BattlePokemonMemory {
         );
 
         MutableText formName;
-        if (this.renderablePokemon.getForm().formOnlyShowdownId().equalsIgnoreCase("normal")){
+        if (this.renderablePokemon == null) {
+            formName = Text.translatable("gui.battle.dystoria-tweaks.field.unknown");
+        }
+        else if (this.renderablePokemon.getForm().formOnlyShowdownId().equalsIgnoreCase("normal")){
             formName = Text.translatable("gui.battle.dystoria-tweaks.field.empty");
         }
         else {
@@ -403,6 +405,9 @@ public class BattlePokemonMemory {
                 Text.translatable("gui.battle.dystoria-tweaks.field.unknown"),
                 Text.translatableWithFallback("cobblemon.ability." + this.tempAbility, this.tempAbility)
             );
+        }
+        else if (this.renderablePokemon == null) {
+            ability = Text.translatable("gui.battle.dystoria-tweaks.field.unknown");
         }
 
         if (ability == null) {
