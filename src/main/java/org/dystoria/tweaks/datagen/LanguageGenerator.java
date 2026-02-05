@@ -24,6 +24,7 @@ public class LanguageGenerator extends FabricLanguageProvider {
         translationBuilder.add("gui.battle.dystoria-tweaks.ability", "Ability");
         translationBuilder.add("gui.battle.dystoria-tweaks.ability.temp", "%1$s (%2$s)");
         translationBuilder.add("gui.battle.dystoria-tweaks.moves", "Moves");
+        translationBuilder.add("gui.battle.dystoria-tweaks.move.pp", "%1$s / %2$s");
 
         translationBuilder.add("gui.battle.dystoria-tweaks.field.empty", "---");
         translationBuilder.add("gui.battle.dystoria-tweaks.field.unknown", "???");

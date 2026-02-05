@@ -1,7 +1,6 @@
 package org.dystoria.tweaks.battle;
 
 import com.cobblemon.mod.common.api.abilities.PotentialAbility;
-import com.cobblemon.mod.common.api.gui.GuiUtilsKt;
 import com.cobblemon.mod.common.api.moves.Move;
 import com.cobblemon.mod.common.api.moves.MoveSet;
 import com.cobblemon.mod.common.api.moves.MoveTemplate;
@@ -39,7 +38,7 @@ import java.util.UUID;
 
 public class BattlePokemonMemory {
     public static final int PANEL_WIDTH = 150;
-    public static final int PANEL_HEIGHT = 100;
+    public static final int PANEL_HEIGHT = 104;
     private static final int FRAME_LENGTH = 28;
     private static final Identifier PANEL_TEXTURE = DystoriaTweaksClient.identifier("textures/gui/battle/info_panel.png");
     private static final Identifier PANEL_FRAME_TEXTURE = DystoriaTweaksClient.identifier("textures/gui/battle/info_panel_frame.png");
@@ -132,6 +131,7 @@ public class BattlePokemonMemory {
         else {
             MoveTemplate template = Moves.getByNameOrDummy(move);
             Move realMove = template.create(template.getMaxPp(), 3);
+            realMove.setCurrentPp(realMove.getCurrentPp() - 1);
             this.addMove(realMove);
         }
     }
@@ -277,6 +277,13 @@ public class BattlePokemonMemory {
         if (template.getName().equalsIgnoreCase("unknown")) return Text.translatable("gui.battle.dystoria-tweaks.field.unknown");
         if (template.getName().equalsIgnoreCase("empty")) return Text.translatable("gui.battle.dystoria-tweaks.field.empty");
         return Text.translatableWithFallback("cobblemon.move." + template.getName(), template.getName());
+    }
+
+    private MutableText getMovePP (Move move) {
+        if (move.getName().equalsIgnoreCase("unknown") || move.getName().equalsIgnoreCase("empty")) {
+            return Text.translatable("gui.battle.dystoria-tweaks.move.pp", "-", "-");
+        }
+        return Text.translatable("gui.battle.dystoria-tweaks.move.pp", move.getCurrentPp(), move.getMaxPp());
     }
 
     private void renderForm (DrawContext context, int x, int y) {
@@ -445,13 +452,22 @@ public class BattlePokemonMemory {
             null, null
         );
 
-        MutableText move1 = this.getMoveName(this.getMove(0));
-        float scale1 = textRenderer.getWidth(move1) > 68 ? 0.5f : 0.75f;
+        this.renderMove(context, this.getMove(0), x + 39.5, y + 70.5);
+        this.renderMove(context, this.getMove(1), x + 110.5, y + 70.5);
+        this.renderMove(context, this.getMove(2), x + 39.5, y + 86.5);
+        this.renderMove(context, this.getMove(3), x + 110.5, y + 86.5);
+    }
+
+    private void renderMove (DrawContext context, Move move, double x, double y) {
+        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+
+        MutableText moveName = this.getMoveName(move);
+        float scale1 = textRenderer.getWidth(moveName) > 68 ? 0.5f : 0.75f;
         RenderHelperKt.drawScaledText(
             context,
             null,
-            move1,
-            x + 39.5, y + 70.5,
+            moveName,
+            x, y,
             scale1,
             1f,
             Integer.MAX_VALUE,
@@ -461,46 +477,13 @@ public class BattlePokemonMemory {
             null, null
         );
 
-        MutableText move2 = this.getMoveName(this.getMove(1));
-        float scale2 = textRenderer.getWidth(move2) > 68 ? 0.5f : 0.75f;
+        MutableText ppCount = this.getMovePP(move);
         RenderHelperKt.drawScaledText(
             context,
             null,
-            move2,
-            x + 110.5, y + 70.5,
-            scale2,
-            1f,
-            Integer.MAX_VALUE,
-            Colors.WHITE,
-            true,
-            true,
-            null, null
-        );
-
-        MutableText move3 = this.getMoveName(this.getMove(2));
-        float scale3 = textRenderer.getWidth(move3) > 68 ? 0.5f : 0.75f;
-        RenderHelperKt.drawScaledText(
-            context,
-            null,
-            move3,
-            x + 39.5, y + 81.5,
-            scale3,
-            1f,
-            Integer.MAX_VALUE,
-            Colors.WHITE,
-            true,
-            true,
-            null, null
-        );
-
-        MutableText move4 = this.getMoveName(this.getMove(3));
-        float scale4 = textRenderer.getWidth(move4) > 68 ? 0.5f : 0.75f;
-        RenderHelperKt.drawScaledText(
-            context,
-            null,
-            move4,
-            x + 110.5, y + 81.5,
-            scale4,
+            ppCount,
+            x, y + 7,
+            0.5f,
             1f,
             Integer.MAX_VALUE,
             Colors.WHITE,
