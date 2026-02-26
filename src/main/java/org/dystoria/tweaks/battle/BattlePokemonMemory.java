@@ -45,18 +45,21 @@ public class BattlePokemonMemory {
     private static final Set<String> SKIP_MOVE_MEMORY = Set.of("metronome", "copycat");
 
     private final UUID uuid;
-    private final List<Move> knownMoves = new ArrayList<>();
+    private final List<Illusory<Move>> knownMoves = new ArrayList<>();
     private double healthPercentage = 1;
     private double prevHealthPercentage = 1;
     private String status = null;
-    private String item = null;
+    private Illusory<String> item = null;
     private String ability = null;
     private String tempAbility = null;
     private RenderablePokemon renderablePokemon;
+    private String name = null;
+    private String owner = null;
     private String lastMove;
     private boolean active;
     private boolean consumedItem = false;
     private boolean transformed = false;
+    private boolean illusionBroken = false;
 
     public BattlePokemonMemory (UUID uuid) {
         this.uuid = uuid;
@@ -77,7 +80,7 @@ public class BattlePokemonMemory {
         }
         this.healthPercentage = state.healthPercentage();
         this.status = state.status().orElse(null);
-        if (state.item().isPresent()) this.item = state.item().get();
+        if (state.item().isPresent()) this.item = new Illusory<>(true, state.item().get());
         if (state.pokemonProperties().isPresent()) {
             PokemonProperties props = state.pokemonProperties().get().toPokemonProperties();
             if (props.hasSpecies()) this.renderablePokemon = props.asRenderablePokemon();
@@ -97,17 +100,47 @@ public class BattlePokemonMemory {
         this.active = active;
     }
 
+    public String getName () {
+        return this.name;
+    }
+
+    public void setName (String name) {
+        this.name = name;
+    }
+
+    public String getOwner () {
+        return this.owner;
+    }
+
+    public void setOwner (String owner) {
+        this.owner = owner;
+    }
+
     public void setMoves (MoveSet moves) {
         this.knownMoves.clear();
-        moves.forEach(this.knownMoves::add);
+        moves.forEach(move -> this.knownMoves.add(new Illusory<>(true, move)));
         while (this.knownMoves.size() < 4) {
-            this.knownMoves.add(MoveTemplate.Companion.dummy("empty").create());
+            this.knownMoves.add(new Illusory<>(true, MoveTemplate.Companion.dummy("empty").create()));
         }
     }
 
     public void addMove (Move move) {
-        if (this.knownMoves.size() < 4 && this.knownMoves.stream().noneMatch(template -> template.getName().equalsIgnoreCase(move.getName()))) {
-            this.knownMoves.add(move);
+        if (this.knownMoves.stream().map(Illusory::getData).anyMatch(template -> template.getName().equalsIgnoreCase(move.getName())))
+            return;
+
+        if (this.knownMoves.size() < 4) {
+            this.knownMoves.add(new Illusory<>(this.illusionBroken, move));
+        }
+        else {
+            Optional<Illusory<Move>> toRemove = this.knownMoves.stream().filter(Illusory::canBeCleared).findFirst();
+            if (toRemove.isEmpty()) {
+                toRemove = this.knownMoves.stream().filter(iMove -> !iMove.isConfirmed()).findFirst();
+            }
+
+            if (toRemove.isPresent()) {
+                this.knownMoves.remove(toRemove.get());
+                this.knownMoves.add(new Illusory<>(this.illusionBroken, move));
+            }
         }
     }
 
@@ -121,12 +154,13 @@ public class BattlePokemonMemory {
         }
         this.lastMove = move;
 
-        Optional<Move> existing = this.knownMoves.stream()
-            .filter(move1 -> move1.getName().equalsIgnoreCase(move))
+        Optional<Illusory<Move>> existing = this.knownMoves.stream()
+            .filter(move1 -> move1.getData().getName().equalsIgnoreCase(move))
             .findAny();
 
         if (existing.isPresent()) {
-            existing.get().setCurrentPp(existing.get().getCurrentPp() - 1);
+            existing.get().getData().setCurrentPp(existing.get().getData().getCurrentPp() - 1);
+            if (this.illusionBroken) existing.get().confirmed = true;
         }
         else {
             MoveTemplate template = Moves.getByNameOrDummy(move);
@@ -138,7 +172,11 @@ public class BattlePokemonMemory {
 
     public Move getMove (int index) {
         if (index >= this.knownMoves.size()) return MoveTemplate.Companion.dummy("unknown").create();
-        return this.knownMoves.get(index);
+        return this.knownMoves.get(index).getData();
+    }
+
+    public RenderablePokemon getRenderablePokemon() {
+        return renderablePokemon;
     }
 
     public double lerpHealthPercentage (double tickDelta) {
@@ -167,15 +205,15 @@ public class BattlePokemonMemory {
     }
 
     public String getItem () {
-        return this.item;
+        return this.item.getData();
     }
 
     public void setItem (String item) {
-        this.item = item;
+        this.item = new Illusory<>(this.illusionBroken, item);
     }
 
     public void setItem (CobblemonItem item) {
-        this.item = item.getTranslationKey();
+        this.item = new Illusory<>(this.illusionBroken, item.getTranslationKey());
     }
 
     public void setConsumedItem (boolean consumedItem) {
@@ -200,6 +238,39 @@ public class BattlePokemonMemory {
 
     public void setTransformed (boolean transformed) {
         this.transformed = transformed;
+    }
+
+    public void onSendOut () {
+        this.illusionBroken = false;
+    }
+
+    public void onRemovedFromField () {
+        if (this.item != null) this.item.markOld();
+        this.knownMoves.forEach(Illusory::markOld);
+        this.tempAbility = null;
+        this.transformed = false;
+    }
+
+    public void clearIllusoryData () {
+        this.knownMoves.removeIf(Illusory::canBeCleared);
+        if (this.item != null && this.item.canBeCleared()) this.item = null;
+    }
+
+    public void confirmNoIllusion () {
+        this.illusionBroken = true;
+        for (Illusory<Move> move : this.knownMoves) {
+            if (move.isNew()) move.confirmed = true;
+        }
+        if (this.item != null) this.item.confirmed = true;
+    }
+
+    public void transferIllusoryDataTo (BattlePokemonMemory other) {
+        for (Illusory<Move> move : this.knownMoves) {
+            if (move.canBeCleared()) other.useMove(move.getData().getName());
+        }
+        if (this.item != null && this.item.canBeCleared()) other.setItem(this.item.getData());
+
+        other.confirmNoIllusion();
     }
 
     public void render (DrawContext context, int x, int y, float tickDelta, boolean isLeft) {
@@ -344,14 +415,14 @@ public class BattlePokemonMemory {
         MutableText item;
         if (this.consumedItem) item = Text.translatable("gui.battle.dystoria-tweaks.field.empty");
         else if (this.item != null) {
-            if (this.item.isEmpty()) {
+            if (this.item.getData().isEmpty()) {
                 item = Text.translatable("gui.battle.dystoria-tweaks.field.empty");
             }
             else {
                 Language lang = Language.getInstance();
-                if (lang.hasTranslation(this.item)) item = Text.translatable(this.item);
+                if (lang.hasTranslation(this.item.getData())) item = Text.translatable(this.item.getData());
                 else if (lang.hasTranslation("item.cobblemon." + this.item)) item = Text.translatable("item.cobblemon." + this.item);
-                else item = Text.translatableWithFallback("item.dystorianitems." + this.item, this.item);
+                else item = Text.translatableWithFallback("item.dystorianitems." + this.item.getData(), this.item.getData());
             }
         }
         else item = Text.translatable("gui.battle.dystoria-tweaks.field.unknown");
@@ -441,8 +512,6 @@ public class BattlePokemonMemory {
     }
 
     private void renderMoves (DrawContext context, int x, int y) {
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
-
         RenderHelperKt.drawScaledText(
             context,
             null,
@@ -496,5 +565,37 @@ public class BattlePokemonMemory {
             true,
             null, null
         );
+    }
+
+    private static class Illusory<T> {
+        private boolean confirmed;
+        private boolean old;
+        private final T data;
+
+        private Illusory (boolean confirmed, T data) {
+            this.confirmed = confirmed;
+            this.data = data;
+            this.old = false;
+        }
+
+        private boolean isConfirmed () {
+            return this.confirmed;
+        }
+
+        private boolean isNew () {
+            return !this.old;
+        }
+
+        private void markOld () {
+            this.old = true;
+        }
+
+        private boolean canBeCleared () {
+            return !this.old && !this.confirmed;
+        }
+
+        private T getData () {
+            return this.data;
+        }
     }
 }
