@@ -205,7 +205,7 @@ public class BattlePokemonMemory {
     }
 
     public String getItem () {
-        return this.item.getData();
+        return this.item == null ? null : this.item.getData();
     }
 
     public void setItem (String item) {
