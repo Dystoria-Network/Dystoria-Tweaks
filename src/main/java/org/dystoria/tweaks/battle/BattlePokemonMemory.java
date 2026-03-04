@@ -85,7 +85,7 @@ public class BattlePokemonMemory {
         this.status = state.status().orElse(null);
         if (state.item().isPresent()) this.item = new Illusory<>(true, state.item().get());
         if (state.pokemonProperties().isPresent()) {
-            PokemonProperties props = state.pokemonProperties().get().toPokemonProperties();
+            PokemonProperties props = state.pokemonProperties().get().get();
             if (props.hasSpecies()) this.renderablePokemon = props.asRenderablePokemon();
             if (props.getAbility() != null) this.ability = props.getAbility();
         }
