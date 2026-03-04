@@ -181,13 +181,13 @@ public class BattleHud {
                     Object userArg = content.getArgs()[0];
                     Object moveArg = content.getArgs()[1];
                     if (userArg instanceof Text userText
-                        && userText.getContent() instanceof TranslatableTextContent userContent
+                        && userText.getContent() instanceof TranslatableTextContent
                         && moveArg instanceof Text moveText
                         && moveText.getContent() instanceof TranslatableTextContent argContent
                     ) {
                         OwnedPokemon owned = OwnedPokemon.fromTextArg(userArg);
                         ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
-                        if (pokemon == null || pokemon.getBattlePokemon() == null) return;
+                        if (pokemon == null || pokemon.getBattlePokemon() == null) continue;
 
                         BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
                         mem.useMove(argContent.getKey().replace("cobblemon.move.", ""));
