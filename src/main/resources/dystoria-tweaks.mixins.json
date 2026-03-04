@@ -11,10 +11,11 @@
         "defaultRequire": 1
     },
     "client": [
+        "BattleOverlayMixin",
         "CobblemonClientMixin",
         "PCGUIMixin",
         "PokemonInfoWidgetMixin",
         "SummaryMixin",
         "TradeGUIMixin"
-	]
+    ]
 }

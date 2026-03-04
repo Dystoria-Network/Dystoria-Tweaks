@@ -21,6 +21,7 @@ import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableTextContent;
 import org.dystoria.tweaks.gui.battle.PokeballPreviewWidget;
+import org.dystoria.tweaks.gui.battle.StatChangeRenderer;
 import org.dystoria.tweaks.gui.battle.TeamPreviewWidget;
 import org.jetbrains.annotations.Nullable;
 
@@ -336,7 +337,7 @@ public class BattleHud {
                                     String moveName = moveContent.getKey().replace("cobblemon.move.", "");
                                     if (Moves.getByNameOrDummy(moveName).getDamageCategory() != DamageCategories.INSTANCE.getSTATUS()) {
                                         OwnedPokemon owned = OwnedPokemon.fromTextArg(content2.getArgs()[2]);
-                                        BattlePokemonMemory mem = getMemory(getPokemon(battle, owned));
+                                        BattlePokemonMemory mem = getOrCreateMemory(getPokemon(battle, owned));
                                         if (mem != null) mem.confirmNoIllusion();
                                     }
                                 }
@@ -344,6 +345,61 @@ public class BattleHud {
                         }
                     }
                     messagesThisTurn.clear();
+                }
+                else if ((content.getKey().contains("cobblemon.battle.boost.") || content.getKey().contains("cobblemon.battle.unboost.")) && content.getArgs().length >= 2) {
+                    if (content.getArgs()[1] instanceof Text statText && statText.getContent() instanceof TranslatableTextContent statContent) {
+                        OwnedPokemon pokemon = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                        BattlePokemonMemory mem = getMemory(pokemon);
+                        if (mem == null) continue;
+
+                        String key = statContent.getKey().replace("cobblemon.stat.", "").replace(".name", "");
+                        key = switch (key) {
+                            case "attack" -> "atk";
+                            case "defence" -> "def";
+                            case "special_attack" -> "spa";
+                            case "special_defence" -> "spd";
+                            case "speed" -> "spe";
+                            case "accuracy" -> "acc";
+                            case "evasion" -> "eva";
+                            default -> key;
+                        };
+
+                        int multiplier = content.getKey().contains("unboost") ? -1 : 1;
+                        int amount = 0;
+                        if (content.getKey().contains("slight")) amount = 1;
+                        else if (content.getKey().contains("sharp")) amount = 2;
+                        else if (content.getKey().contains("severe")) amount = 3;
+
+                        if (amount > 0) {
+                            mem.getStatChanges().put(key, mem.getStatChanges().getOrDefault(key, 0) + amount * multiplier);
+                        }
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.clearallboost")) {
+                    memory.values().forEach(mem -> mem.getStatChanges().clear());
+                }
+                else if (content.getKey().contains("cobblemon.battle.clearallnegativeboost") && content.getArgs().length > 0) {
+                    OwnedPokemon pokemon = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    BattlePokemonMemory mem = getMemory(pokemon);
+                    if (mem != null) {
+                        mem.getStatChanges().replaceAll((key, value) -> value < 0 ? 0 : value);
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.clearboost") && content.getArgs().length > 0) {
+                    OwnedPokemon pokemon = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    BattlePokemonMemory mem = getMemory(pokemon);
+                    if (mem != null) {
+                        mem.getStatChanges().clear();
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.setboost.") && content.getArgs().length > 0) {
+                    OwnedPokemon pokemon = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    BattlePokemonMemory mem = getMemory(pokemon);
+                    if (mem == null) continue;
+
+                    if (content.getKey().contains("bellydrum") || content.getKey().contains("angerpoint")) {
+                        mem.getStatChanges().put("atk", 6);
+                    }
                 }
                 else { // There is nothing consistent for items
                     if (twoArgItemText.contains(content.getKey()) && content.getArgs().length >= 2) {
@@ -418,6 +474,13 @@ public class BattleHud {
         }
     }
 
+    public static void drawStatChanges (DrawContext context, ActiveClientBattlePokemon pokemon, boolean isLeft, int rank, boolean isCompact) {
+        BattlePokemonMemory mem = getMemory(pokemon);
+        if (mem == null) return;
+
+        StatChangeRenderer.render(context, mem, isLeft, rank, isCompact);
+    }
+
     @Nullable
     private static ActiveClientBattlePokemon getPokemon (ClientBattle battle, OwnedPokemon pokemon) {
         return getPokemon(battle, pokemon.pokemon, pokemon.owner);
@@ -452,9 +515,17 @@ public class BattleHud {
     }
 
     @Nullable
-    private static BattlePokemonMemory getMemory (@Nullable ActiveClientBattlePokemon pokemon) {
+    private static BattlePokemonMemory getOrCreateMemory (@Nullable ActiveClientBattlePokemon pokemon) {
         if (pokemon != null && pokemon.getBattlePokemon() != null) {
             return memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+        }
+        return null;
+    }
+
+    @Nullable
+    private static BattlePokemonMemory getMemory (@Nullable ActiveClientBattlePokemon pokemon) {
+        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+            return memory.get(pokemon.getBattlePokemon().getUuid());
         }
         return null;
     }

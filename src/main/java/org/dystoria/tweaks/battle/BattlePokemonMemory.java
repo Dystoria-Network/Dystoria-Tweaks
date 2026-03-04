@@ -29,8 +29,10 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -60,6 +62,7 @@ public class BattlePokemonMemory {
     private boolean consumedItem = false;
     private boolean transformed = false;
     private boolean illusionBroken = false;
+    private final Map<String, Integer> statChanges = new HashMap<>();
 
     public BattlePokemonMemory (UUID uuid) {
         this.uuid = uuid;
@@ -86,6 +89,8 @@ public class BattlePokemonMemory {
             if (props.hasSpecies()) this.renderablePokemon = props.asRenderablePokemon();
             if (props.getAbility() != null) this.ability = props.getAbility();
         }
+        this.statChanges.clear();
+        this.statChanges.putAll(state.statChanges());
     }
 
     public void setRenderablePokemon (RenderablePokemon renderablePokemon) {
@@ -175,6 +180,10 @@ public class BattlePokemonMemory {
         return this.knownMoves.get(index).getData();
     }
 
+    public Map<String, Integer> getStatChanges () {
+        return this.statChanges;
+    }
+
     public RenderablePokemon getRenderablePokemon() {
         return renderablePokemon;
     }
@@ -242,6 +251,7 @@ public class BattlePokemonMemory {
 
     public void onSendOut () {
         this.illusionBroken = false;
+        this.statChanges.clear();
     }
 
     public void onRemovedFromField () {
@@ -249,6 +259,7 @@ public class BattlePokemonMemory {
         this.knownMoves.forEach(Illusory::markOld);
         this.tempAbility = null;
         this.transformed = false;
+        this.statChanges.clear();
     }
 
     public void clearIllusoryData () {
@@ -269,6 +280,9 @@ public class BattlePokemonMemory {
             if (move.canBeCleared()) other.useMove(move.getData().getName());
         }
         if (this.item != null && this.item.canBeCleared()) other.setItem(this.item.getData());
+
+        other.statChanges.clear();
+        other.statChanges.putAll(this.statChanges);
 
         other.confirmNoIllusion();
     }
