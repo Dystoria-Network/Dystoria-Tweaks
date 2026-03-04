@@ -1,5 +1,7 @@
 package org.dystoria.tweaks.gui.battle;
 
+import com.cobblemon.mod.common.client.CobblemonClient;
+import com.cobblemon.mod.common.client.battle.ClientBattle;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
@@ -49,10 +51,11 @@ public class PokeballPreviewWidget extends ClickableWidget {
 
     @Override
     protected void renderWidget (DrawContext context, int mouseX, int mouseY, float delta) {
-        if (this.underlying == null) return;
+        ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
+        if (this.underlying == null || battle == null) return;
 
         Identifier texture;
-        if (this.isHovered()) {
+        if (this.isHovered() && !battle.getMinimised()) {
             if (!this.underlying.isAlive()) texture = this.isLeft ? FAINTED_LEFT_HOVERED : FAINTED_RIGHT_HOVERED;
             else if (this.underlying.hasStatus()) texture = this.isLeft ? STATUS_LEFT_HOVERED : STATUS_RIGHT_HOVERED;
             else texture = this.isLeft ? ALIVE_LEFT_HOVERED : ALIVE_RIGHT_HOVERED;
