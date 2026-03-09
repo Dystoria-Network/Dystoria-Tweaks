@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import org.dystoria.tweaks.battle.BattleHud;
+import org.dystoria.tweaks.config.DystoriaTweaksConfig;
 import org.dystoria.tweaks.networking.PacketCallbacks;
 import org.dystoria.tweaks.resources.DystoriaResourceListener;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ public class DystoriaTweaksClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient () {
+        DystoriaTweaksConfig.load();
         LilyCobblePackets.register();
 		ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new DystoriaResourceListener());
 		HudRenderCallback.EVENT.register(BattleHud::hudCallback);

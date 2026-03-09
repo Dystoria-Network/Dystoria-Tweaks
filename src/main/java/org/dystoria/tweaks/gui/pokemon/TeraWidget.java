@@ -9,6 +9,7 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.dystoria.tweaks.DystoriaTweaksClient;
+import org.dystoria.tweaks.config.DystoriaTweaksConfig;
 import org.jetbrains.annotations.Nullable;
 
 public class TeraWidget extends ClickableWidget {
@@ -26,7 +27,7 @@ public class TeraWidget extends ClickableWidget {
 
     @Override
     protected void renderWidget (DrawContext context, int mouseX, int mouseY, float delta) {
-        if (teraType == null) return;
+        if (!DystoriaTweaksConfig.shouldRenderTeraTypes() || teraType == null) return;
 
         context.drawTexture(
             getTexture(this.teraType.showdownId()),

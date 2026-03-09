@@ -6,6 +6,7 @@ import com.cobblemon.mod.common.pokemon.Pokemon;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import org.dystoria.tweaks.DystoriaTweaksClient;
+import org.dystoria.tweaks.config.DystoriaTweaksConfig;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -23,7 +24,7 @@ public final class ShinyIcons {
     }
 
     public static void placeExtraShinyIcons (@NotNull Pokemon pokemon, MatrixStack matrices, double x, double y, int length, boolean leftToRight) {
-        if (pokemon.getShiny()) {
+        if (DystoriaTweaksConfig.shouldRenderShinyRarities() && pokemon.getShiny()) {
             int shinyStars = 0;
             if (pokemon.getAspects().contains("shinier")) shinyStars = 1;
             if (pokemon.getAspects().contains("shiniest")) shinyStars = 2;

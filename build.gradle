@@ -42,6 +42,7 @@ dependencies {
 
 	modImplementation "com.cobblemon:fabric:${project.cobblemon_version}"
     modImplementation include("com.github.Provismet:lilycobble:${project.lilycobble_version}")
+    modImplementation include("com.github.Provismet:lilylib:${project.lilylib_version}")
 }
 
 processResources {

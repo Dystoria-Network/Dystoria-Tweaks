@@ -20,6 +20,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableTextContent;
+import org.dystoria.tweaks.config.DystoriaTweaksConfig;
 import org.dystoria.tweaks.gui.battle.PokeballPreviewWidget;
 import org.dystoria.tweaks.gui.battle.StatChangeRenderer;
 import org.dystoria.tweaks.gui.battle.TeamPreviewWidget;
@@ -473,7 +474,7 @@ public class BattleHud {
 
     public static void drawStatChanges (DrawContext context, ActiveClientBattlePokemon pokemon, boolean isLeft, int rank, boolean isCompact) {
         BattlePokemonMemory mem = getMemory(pokemon);
-        if (mem == null) return;
+        if (!DystoriaTweaksConfig.shouldRenderBattleStatChanges() || mem == null) return;
 
         StatChangeRenderer.render(context, mem, isLeft, rank, isCompact);
     }

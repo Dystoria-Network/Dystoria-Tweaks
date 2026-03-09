@@ -7,6 +7,7 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.dystoria.tweaks.DystoriaTweaksClient;
+import org.dystoria.tweaks.config.DystoriaTweaksConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +31,7 @@ public class TeamPreviewWidget extends ClickableWidget {
 
     @Override
     protected void renderWidget (DrawContext context, int mouseX, int mouseY, float delta) {
-        if (this.party.isEmpty()) return;
+        if (!DystoriaTweaksConfig.shouldRenderBattleHUD() || this.party.isEmpty()) return;
 
         context.drawTexture(isLeft ? TOP_LEFT_BORDER : TOP_RIGHT_BORDER, this.getX(), this.getY(), 0, 0, WIDTH, BORDER_HEIGHT, WIDTH, BORDER_HEIGHT);
         this.party.forEach(widget -> widget.render(context, mouseX, mouseY, delta));
