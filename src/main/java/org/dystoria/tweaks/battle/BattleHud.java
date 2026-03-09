@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.UUID;
 
 public class BattleHud {
-    private static BattleStatePacketS2C state = null;
     private static int prevTime = 0;
     private static final Map<UUID, BattlePokemonMemory> memory = new HashMap<>();
     private static final List<TeamPreviewWidget> teamPreviews = List.of(new TeamPreviewWidget(0, 0, true), new TeamPreviewWidget(0, 0, false));
@@ -62,7 +61,6 @@ public class BattleHud {
     public static void receivePacket (BattleStatePacketS2C packet, ClientPlayNetworking.Context context) {
         ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
         if (CobblemonClient.INSTANCE.getBattle() == null || MinecraftClient.getInstance().player == null) return;
-        state = packet;
 
         for (BattleSideState side : packet.sides()) {
             for (BattlePokemonState pokemon : side.getPokemon()) {
@@ -450,7 +448,6 @@ public class BattleHud {
             messagesThisTurn.clear();
             pokemonAtTurnStart.clear();
             teamPreviews.forEach(TeamPreviewWidget::clearParty);
-            state = null;
             return;
         }
 
