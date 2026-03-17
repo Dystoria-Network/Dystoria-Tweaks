@@ -91,6 +91,10 @@ public class MovePreviewWidget extends ClickableWidget {
     }
 
     private Text stabPower () {
+        if (this.move.getPower() <= 1) { // Z-Moves have a power of 1
+            return Text.literal("???");
+        }
+
         MutableText base = Text.literal(String.valueOf((int)this.move.getPower()));
         if (this.isSTAB) {
             int stabValue = (int)(this.move.getPower() * 1.5);
