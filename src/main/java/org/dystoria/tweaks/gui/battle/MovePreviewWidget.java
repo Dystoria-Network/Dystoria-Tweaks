@@ -1,13 +1,18 @@
 package org.dystoria.tweaks.gui.battle;
 
 import com.cobblemon.mod.common.api.moves.MoveTemplate;
+import com.cobblemon.mod.common.api.types.ElementalType;
+import com.cobblemon.mod.common.pokemon.Pokemon;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.dystoria.tweaks.DystoriaTweaksClient;
 
@@ -17,6 +22,7 @@ public class MovePreviewWidget extends ClickableWidget {
     public static final Identifier TEXTURE = DystoriaTweaksClient.identifier("textures/gui/battle/move_preview.png");
     private static final TextRenderer TEXT_RENDERER = MinecraftClient.getInstance().textRenderer;
     private final MoveTemplate move;
+    private boolean isSTAB = false;
 
     public MovePreviewWidget (MoveTemplate move) {
         super(0, 0, WIDTH, HEIGHT, Text.literal("Move"));
@@ -32,7 +38,7 @@ public class MovePreviewWidget extends ClickableWidget {
         context.drawTexture(TEXTURE, this.getX(), this.getY(), 0, 0, this.getWidth(), this.getHeight(), this.getWidth(), this.getHeight());
 
         Text none = Text.literal("-");
-        Text power = this.move.getPower() > 0 ? Text.literal(String.valueOf((int)this.move.getPower())) : none;
+        Text power = this.move.getPower() > 0 ? this.stabPower() : none;
         Text effectChance = this.move.getEffectChances().length == 0 ? Text.literal("-") : Text.literal(String.valueOf(this.move.getEffectChances()[0].intValue())).append("%");
         Text accuracy = this.move.getAccuracy() > 0 ? Text.literal(String.valueOf((int)this.move.getAccuracy())).append("%") : none;
 
@@ -74,8 +80,25 @@ public class MovePreviewWidget extends ClickableWidget {
         this.setY(screenHeight - HEIGHT - 90);
     }
 
+    public void setSTAB (Pokemon pokemon, ElementalType type) {
+        if (pokemon.getPrimaryType().equals(type)) this.isSTAB = true;
+        else this.isSTAB = pokemon.getSecondaryType() != null && pokemon.getSecondaryType().equals(type);
+    }
+
     @Override
     protected void appendClickableNarrations(NarrationMessageBuilder builder) {
 
+    }
+
+    private Text stabPower () {
+        MutableText base = Text.literal(String.valueOf((int)this.move.getPower()));
+        if (this.isSTAB) {
+            int stabValue = (int)(this.move.getPower() * 1.5);
+            MutableText stabBonus = Text.literal(" (").append(String.valueOf(stabValue)).append(")");
+            stabBonus.setStyle(Style.EMPTY.withColor(Formatting.YELLOW));
+            base.append(stabBonus);
+        }
+
+        return base;
     }
 }
