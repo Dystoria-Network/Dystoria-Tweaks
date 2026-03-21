@@ -24,7 +24,7 @@ public abstract class MoveTileMixin {
     @Shadow @Final private Pokemon pokemon;
     @Shadow @Final private ElementalType elementalType;
 
-    @Unique MovePreviewWidget previewWidget;
+    @Unique private MovePreviewWidget previewWidget;
 
     @Inject(method = "render", at = @At("TAIL"))
     private void addPreview (DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
