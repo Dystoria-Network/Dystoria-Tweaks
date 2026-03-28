@@ -26,7 +26,10 @@
 		],
 		"fabric-datagen": [
 			"org.dystoria.tweaks.datagen.DystoriaTweaksDatagen"
-		]
+		],
+        "modmenu": [
+            "org.dystoria.tweaks.compatibility.modmenu.DystoriaTweaksConfigMenu"
+        ]
 	},
 	"mixins": [
 		"dystoria-tweaks.mixins.json"

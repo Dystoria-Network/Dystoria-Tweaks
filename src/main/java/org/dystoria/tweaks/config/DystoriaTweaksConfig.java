@@ -26,20 +26,40 @@ public final class DystoriaTweaksConfig {
         return shiny;
     }
 
+    public static void setShouldRenderShinyRarities (boolean value) {
+        shiny = value;
+    }
+
     public static boolean shouldRenderTeraTypes () {
         return tera;
+    }
+
+    public static void setShouldRenderTeraTypes (boolean value) {
+        tera = value;
     }
 
     public static boolean shouldRenderBattleHUD () {
         return teamPreview;
     }
 
+    public static void setShouldRenderBattleHUD (boolean value) {
+        teamPreview = value;
+    }
+
     public static boolean shouldRenderBattleStatChanges () {
         return statChanges;
     }
 
+    public static void setShouldRenderBattleStatChanges (boolean value) {
+        statChanges = value;
+    }
+
     public static boolean shouldRenderMoveTooltips () {
         return moveTooltips;
+    }
+
+    public static void setShouldRenderMoveTooltips (boolean value) {
+        moveTooltips = value;
     }
 
     public static void save () {

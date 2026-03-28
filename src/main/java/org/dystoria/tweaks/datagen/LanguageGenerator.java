@@ -28,5 +28,14 @@ public class LanguageGenerator extends FabricLanguageProvider {
 
         translationBuilder.add("gui.battle.dystoria-tweaks.field.empty", "---");
         translationBuilder.add("gui.battle.dystoria-tweaks.field.unknown", "???");
+
+        translationBuilder.add("title.dystoria-tweaks.config", "Dystoria Tweaks");
+        translationBuilder.add("category.dystoria-tweaks.general", "General");
+        translationBuilder.add("entry.dystoria-tweaks.show_rarity", "Show Shinier/Shiniest Stars");
+        translationBuilder.add("entry.dystoria-tweaks.tera", "Show Tera Types");
+        translationBuilder.add("category.dystoria-tweaks.battle", "Battle HUD");
+        translationBuilder.add("entry.dystoria-tweaks.team_preview", "Show Pokemon Inspector");
+        translationBuilder.add("entry.dystoria-tweaks.stat_changes", "Show Stat Changes");
+        translationBuilder.add("entry.dystoria-tweaks.move_inspector", "Show Move Inspector");
     }
 }
