@@ -1,6 +1,22 @@
 {
+  "category.dystoria-tweaks.battle": "Battle HUD",
+  "category.dystoria-tweaks.general": "General",
+  "entry.dystoria-tweaks.move_inspector": "Show Move Inspector",
+  "entry.dystoria-tweaks.show_rarity": "Show Shinier/Shiniest Stars",
+  "entry.dystoria-tweaks.stat_changes": "Show Stat Changes",
+  "entry.dystoria-tweaks.team_preview": "Show Pokemon Inspector",
+  "entry.dystoria-tweaks.tera": "Show Tera Types",
+  "gui.battle.dystoria-tweaks.ability": "Ability",
+  "gui.battle.dystoria-tweaks.ability.temp": "%1$s (%2$s)",
+  "gui.battle.dystoria-tweaks.field.empty": "---",
+  "gui.battle.dystoria-tweaks.field.unknown": "???",
+  "gui.battle.dystoria-tweaks.form": "Form",
+  "gui.battle.dystoria-tweaks.item": "Item",
+  "gui.battle.dystoria-tweaks.move.pp": "%1$s / %2$s",
+  "gui.battle.dystoria-tweaks.moves": "Moves",
   "gui.dystoria-tweaks.mark_counter": "Mark Counter",
   "gui.dystoria-tweaks.tera": "Tera Type",
+  "title.dystoria-tweaks.config": "Dystoria Tweaks",
   "tooltip.dystoria-tweaks.mark_counter": "Marks: %1$s",
   "tooltip.dystoria-tweaks.tera": "Tera Type: %1$s"
 }

@@ -3,6 +3,7 @@
     "package": "org.dystoria.tweaks.mixin",
     "compatibilityLevel": "JAVA_21",
     "mixins": [
+        "BattleMessagePacketHandlerMixin",
         "CobblemonStatProviderMixin",
         "PokemonSpeciesMixin"
     ],
@@ -10,10 +11,12 @@
         "defaultRequire": 1
     },
     "client": [
+        "BattleOverlayMixin",
         "CobblemonClientMixin",
+        "MoveTileMixin",
         "PCGUIMixin",
         "PokemonInfoWidgetMixin",
         "SummaryMixin",
         "TradeGUIMixin"
-	]
+    ]
 }

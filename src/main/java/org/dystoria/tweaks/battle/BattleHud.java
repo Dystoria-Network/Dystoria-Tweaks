@@ -1,80 +1,565 @@
 package org.dystoria.tweaks.battle;
 
-import com.cobblemon.mod.common.api.battles.model.actor.ActorType;
+import com.cobblemon.mod.common.CobblemonItems;
+import com.cobblemon.mod.common.api.moves.Moves;
+import com.cobblemon.mod.common.api.moves.categories.DamageCategories;
 import com.cobblemon.mod.common.client.CobblemonClient;
+import com.cobblemon.mod.common.client.battle.ActiveClientBattlePokemon;
 import com.cobblemon.mod.common.client.battle.ClientBattle;
 import com.cobblemon.mod.common.client.battle.ClientBattleActor;
 import com.cobblemon.mod.common.client.battle.ClientBattleSide;
+import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.cobblemon.mod.common.pokemon.status.PersistentStatus;
+import com.cobblemon.mod.common.pokemon.status.PersistentStatusContainer;
+import com.provismet.cobblemon.lilycobble.networking.battle.BattlePokemonState;
+import com.provismet.cobblemon.lilycobble.networking.battle.BattleSideState;
+import com.provismet.cobblemon.lilycobble.networking.battle.BattleStatePacketS2C;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.scoreboard.ReadableScoreboardScore;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.number.StyledNumberFormat;
-import net.minecraft.util.Identifier;
+import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableTextContent;
+import org.dystoria.tweaks.config.DystoriaTweaksConfig;
+import org.dystoria.tweaks.gui.battle.PokeballPreviewWidget;
+import org.dystoria.tweaks.gui.battle.StatChangeRenderer;
+import org.dystoria.tweaks.gui.battle.TeamPreviewWidget;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 public class BattleHud {
-    private static final char ALIVE = 'A';
-    private static final char STATUS ='S';
-    private static final char DEAD = 'D';
+    private static int prevTime = 0;
+    private static final Map<UUID, BattlePokemonMemory> memory = new HashMap<>();
+    private static final List<TeamPreviewWidget> teamPreviews = List.of(new TeamPreviewWidget(0, 0, true), new TeamPreviewWidget(0, 0, false));
+    private static final List<UUID> pokemonAtTurnStart = new ArrayList<>();
+    private static final List<Text> messagesThisTurn = new ArrayList<>();
 
-    private static final Identifier ALIVE_ICON = Identifier.of("dystoria-core", "textures/font/alive.png");
-    private static final Identifier STATUS_ICON = Identifier.of("dystoria-core", "textures/font/status.png");
-    private static final Identifier FAINTED_ICON = Identifier.of("dystoria-core", "textures/font/dead.png");
+    // Item Translation Key Handling
 
-    private static final int ICON_LENGTH = 16;
+    /**
+     * Arg1 is the user, Arg2 is the item
+     */
+    private static final Set<String> twoArgItemText = Set.of(
+        "cobblemon.battle.item.airballoon",
+        "cobblemon.battle.item.recycle",
+        "cobblemon.battle.item.harvest",
+        "cobblemon.battle.item.frisk",
+        "cobblemon.battle.item.bestow",
+        "cobblemon.battle.heal.leftovers",
+        "cobblemon.battle.heal.item",
+        "cobblemon.battle.damage.item"
+    );
 
-    public static void hudCallback (DrawContext context, RenderTickCounter counter) {
+    public static void receivePacket (BattleStatePacketS2C packet, ClientPlayNetworking.Context context) {
         ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
-        if (battle != null && MinecraftClient.getInstance().player != null && MinecraftClient.isHudEnabled()) {
-            ClientBattleSide left = battle.getSide1().getActors().stream().anyMatch(actor -> actor.getUuid().equals(MinecraftClient.getInstance().player.getUuid())) ? battle.getSide1() : battle.getSide2();
-            ClientBattleSide right = left == battle.getSide1() ? battle.getSide2() : battle.getSide1();
+        if (CobblemonClient.INSTANCE.getBattle() == null || MinecraftClient.getInstance().player == null) return;
 
-            renderSide(context, left, true);
-            renderSide(context, right, false);
+        for (BattleSideState side : packet.sides()) {
+            for (BattlePokemonState pokemon : side.getPokemon()) {
+                memory.putIfAbsent(pokemon.uuid(), new BattlePokemonMemory(pokemon.uuid()));
+                memory.get(pokemon.uuid()).setState(pokemon);
+            }
+        }
+
+        int pokemonCount = packet.sides().stream().mapToInt(side -> side.getPokemon().size()).sum();
+        int widgetCount = teamPreviews.stream().mapToInt(TeamPreviewWidget::getPartySize).sum();
+        if (widgetCount != pokemonCount) {
+            teamPreviews.forEach(TeamPreviewWidget::clearParty);
+
+            packet.sides().forEach(side -> {
+                Optional<ClientBattleActor> anyActor = side.actors()
+                    .stream()
+                    .map(actor -> battle.getParticipatingActor(actor.uuid()))
+                    .filter(Objects::nonNull)
+                    .findAny();
+
+                if (anyActor.isEmpty()) return; // This should not happen!
+                boolean isLeft = anyActor.get().getSide().equals(battle.getSide1());
+
+                for (BattlePokemonState battlePokemonState : side.getPokemon()) {
+                    BattlePokemonMemory pokemon = memory.get(battlePokemonState.uuid());
+                    if (pokemon == null) continue; // Should never happen, but just in case
+
+                    TeamPreviewWidget widget = isLeft ? teamPreviews.getFirst() : teamPreviews.getLast();
+                    widget.addPartyMember(new PokeballPreviewWidget(isLeft, pokemon));
+                }
+            });
         }
     }
 
-    private static void renderSide (DrawContext context, ClientBattleSide side, boolean isLeft) {
-        ClientWorld world = MinecraftClient.getInstance().world;
-        if (world == null) return;
+    public static void tickLocalBattleInfo () {
+        ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
+        if (CobblemonClient.INSTANCE.getBattle() == null || MinecraftClient.getInstance().player == null) return;
 
-        StringBuilder team = new StringBuilder();
-
-        for (ClientBattleActor actor : side.getActors()) {
-            if (actor.getType() != ActorType.PLAYER) continue;
-            PlayerEntity player = world.getPlayerByUuid(actor.getUuid());
-            if (player == null) continue;
-
-            Scoreboard scoreboard = player.getScoreboard();
-            ScoreboardObjective teamScoreboard = scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.BELOW_NAME);
-            if (teamScoreboard == null) continue;
-
-            ReadableScoreboardScore readableScoreboardScore = scoreboard.getScore(player, teamScoreboard);
-            team.append(ReadableScoreboardScore.getFormattedScore(readableScoreboardScore, teamScoreboard.getNumberFormatOr(StyledNumberFormat.EMPTY)).getString().strip());
+        for (Map.Entry<UUID, BattlePokemonMemory> entry : memory.entrySet()) {
+            entry.getValue().setActive(false);
         }
 
-        List<Identifier> icons = new ArrayList<>();
-        for (char icon : team.toString().toCharArray()) {
-            if (icon == ALIVE) icons.add(ALIVE_ICON);
-            else if (icon == STATUS) icons.add(STATUS_ICON);
-            else if (icon == DEAD) icons.add(FAINTED_ICON);
+        for (ClientBattleSide side : battle.getSides()) {
+            for (ActiveClientBattlePokemon pokemon : side.getActiveClientBattlePokemon()) {
+                if (pokemon.getBattlePokemon() == null) continue;
+
+                BattlePokemonMemory pokemonMemory = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                pokemonMemory.setRenderablePokemon(pokemon.getBattlePokemon().getProperties().asRenderablePokemon());
+                pokemonMemory.setName(pokemon.getBattlePokemon().getDisplayName().getString());
+                pokemonMemory.setOwner(pokemon.getActor().getDisplayName().getString());
+                pokemonMemory.setActive(true);
+
+                if (pokemon.getBattlePokemon().isHpFlat()) {
+                    pokemonMemory.setHealthPercentage(pokemon.getBattlePokemon().getHpValue() / pokemon.getBattlePokemon().getMaxHp());
+                }
+                else {
+                    pokemonMemory.setHealthPercentage(pokemon.getBattlePokemon().getHpValue());
+                }
+
+                PersistentStatus status = pokemon.getBattlePokemon().getStatus();
+                if (status == null) pokemonMemory.setStatus(null);
+                else pokemonMemory.setStatus(status.getShowdownName());
+
+                if (teamPreviews.stream().noneMatch(widget -> widget.hasPartyMember(pokemon.getBattlePokemon().getUuid()))) {
+                    boolean isLeft;
+
+                    if (battle.getSpectating()) isLeft = side.equals(battle.getSide2());
+                    else isLeft = side.equals(battle.getSide1());
+
+                    TeamPreviewWidget widget = isLeft ? teamPreviews.getFirst() : teamPreviews.getLast();
+                    widget.addPartyMember(new PokeballPreviewWidget(isLeft, pokemonMemory));
+                }
+            }
         }
 
-        int height = MinecraftClient.getInstance().getWindow().getScaledHeight();
-        int x = isLeft ? 2 : MinecraftClient.getInstance().getWindow().getScaledWidth() - ICON_LENGTH - 2;
-        for (int i = 0; i < icons.size(); ++i) {
-            Identifier icon = icons.get(i);
-            int y = (height / 2) - (icons.size() * ICON_LENGTH / 2) + (i * (ICON_LENGTH + 1));
+        // If you're in the battle, then you have full information for your own party.
+        if (!battle.getSpectating()) {
+            ClientBattleActor myActor = battle.getParticipatingActor(MinecraftClient.getInstance().player.getUuid());
+            if (myActor != null) {
+                for (Pokemon pokemon : myActor.getPokemon()) {
+                    BattlePokemonMemory pokemonMemory = memory.computeIfAbsent(pokemon.getUuid(), BattlePokemonMemory::new);
+                    pokemonMemory.setRenderablePokemon(pokemon.asRenderablePokemon());
+                    pokemonMemory.setMoves(pokemon.getMoveSet());
+                    pokemonMemory.setAbility(pokemon.getAbility().getName());
 
-            context.drawTexture(icon, x, y, 0, 0, ICON_LENGTH, ICON_LENGTH, ICON_LENGTH, ICON_LENGTH);
+                    if (pokemon.heldItem().isEmpty()) {
+                        pokemonMemory.setItem("");
+                    }
+                    else if (pokemonMemory.getItem() == null) { // Too many weird edge cases involving items, the packets will always be correct so skip this if its already been done.
+                        if (pokemon.heldItem().getTranslationKey().contains("cobblemon")) { // User is holding a known Cobblemon item
+                            pokemonMemory.setItem(pokemon.heldItem().getTranslationKey());
+                        }
+                        else { // This is most likely a Polymer custom item
+                            pokemonMemory.setItem(pokemon.heldItem().getName().getString().toLowerCase(Locale.ROOT).replace(" ", ""));
+                        }
+                    }
+
+                    PersistentStatusContainer status = pokemon.getStatus();
+                    if (status == null) pokemonMemory.setStatus(null);
+                    else pokemonMemory.setStatus(status.getStatus().getShowdownName());
+
+                    if (!teamPreviews.getFirst().hasPartyMember(pokemon.getUuid())) teamPreviews.getFirst().addPartyMember(new PokeballPreviewWidget(true, pokemonMemory));
+                }
+            }
+        }
+    }
+
+    public static void messageCallback (List<Text> messages) {
+        ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
+        if (battle == null) return;
+
+        for (Text message : messages) {
+            messagesThisTurn.add(message);
+
+            if (message.getContent() instanceof TranslatableTextContent content) {
+                if (content.getKey().contains("cobblemon.battle.used_move") && content.getArgs().length >= 2) {
+                    Object userArg = content.getArgs()[0];
+                    Object moveArg = content.getArgs()[1];
+                    if (userArg instanceof Text userText
+                        && userText.getContent() instanceof TranslatableTextContent
+                        && moveArg instanceof Text moveText
+                        && moveText.getContent() instanceof TranslatableTextContent argContent
+                    ) {
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(userArg);
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon == null || pokemon.getBattlePokemon() == null) continue;
+
+                        BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                        mem.useMove(argContent.getKey().replace("cobblemon.move.", ""));
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.ability.") && content.getArgs().length >= 1) {
+                    OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+
+                    if (content.getKey().contains("generic") && content.getArgs().length >= 2) {
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            mem.confirmNoIllusion();
+                            if (mem.getAbility() == null && !mem.isTransformed()) {
+                                mem.setAbility(content.getArgs()[1].toString());
+                            }
+                        }
+                    }
+                    else if (content.getKey().contains("trace") && content.getArgs().length >= 3) {
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            mem.setTempAbility(content.getArgs()[2].toString());
+                        }
+
+                        ActiveClientBattlePokemon target = getPokemon(battle, OwnedPokemon.fromTextArg(content.getArgs()[1]));
+                        if (target != null && target.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(target.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            if (mem.getAbility() != null && !mem.isTransformed()) {
+                                mem.setAbility(content.getArgs()[2].toString());
+                            }
+                        }
+                    }
+                    else if ((content.getKey().contains("replace") || content.getKey().contains("receiver")) && content.getArgs().length >= 2) {
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            mem.setTempAbility(content.getArgs()[1].toString());
+                        }
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.enditem.") && content.getArgs().length > 0) {
+                    OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                    if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                        BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                        mem.setConsumedItem(true);
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.transform") && content.getArgs().length > 0) {
+                    OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                    if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                        BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                        mem.setTransformed(true);
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.end.illusion")) { // I hate Zoroark, omg
+                    int indexOfMoveOrEffectiveness = messagesThisTurn.size() - 2;
+                    int indexOfMove = messagesThisTurn.size() - 3;
+                    if (indexOfMoveOrEffectiveness >= 0
+                        && messagesThisTurn.get(indexOfMoveOrEffectiveness).getContent() instanceof TranslatableTextContent content2
+                        && content2.getKey().contains("cobblemon.battle.used_move_on")
+                    ) {
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(content2.getArgs()[2]);
+                        BattlePokemonMemory mem = getMemory(owned);
+                        if (mem != null) {
+                            OwnedPokemon zoroark = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                            BattlePokemonMemory zoroarkMem = getMemory(zoroark);
+                            if (zoroarkMem != null) mem.transferIllusoryDataTo(zoroarkMem);
+
+                            mem.clearIllusoryData();
+                        }
+                    }
+                    else if (indexOfMove >= 0
+                        && messagesThisTurn.get(indexOfMove).getContent() instanceof TranslatableTextContent content2
+                        && content2.getKey().contains("cobblemon.battle.used_move_on")
+                    ) {
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(content2.getArgs()[2]);
+                        BattlePokemonMemory mem = getMemory(owned);
+                        if (mem != null) {
+                            OwnedPokemon zoroark = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                            BattlePokemonMemory zoroarkMem = getMemory(zoroark);
+                            if (zoroarkMem != null) mem.transferIllusoryDataTo(zoroarkMem);
+
+                            mem.clearIllusoryData();
+                        }
+                    }
+                    else {
+                        Optional<UUID> inactiveUUID = getAllActivePokemon(battle)
+                            .stream()
+                            .filter(p -> p.getBattlePokemon() != null)
+                            .map(p -> p.getBattlePokemon().getUuid())
+                            .filter(uuid -> pokemonAtTurnStart.stream().noneMatch(pokemon -> pokemon.equals(uuid)))
+                            .findAny();
+
+                        if (inactiveUUID.isPresent()) {
+                            BattlePokemonMemory mem = memory.get(inactiveUUID.get());
+                            mem.clearIllusoryData();
+                        }
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.turn")) {
+                    List<ActiveClientBattlePokemon> current = getAllActivePokemon(battle);
+                    List<UUID> removed = pokemonAtTurnStart
+                        .stream()
+                        .filter(uuid -> current.stream().noneMatch(pokemon -> pokemon.getBattlePokemon() != null && pokemon.getBattlePokemon().getUuid().equals(uuid)))
+                        .toList();
+
+                    List<UUID> sentOut = current
+                        .stream()
+                        .filter(pokemon -> pokemon.getBattlePokemon() != null)
+                        .map(pokemon -> pokemon.getBattlePokemon().getUuid())
+                        .filter(uuid -> pokemonAtTurnStart.stream().noneMatch(uuid1 -> uuid1.equals(uuid)))
+                        .toList();
+
+                    pokemonAtTurnStart.clear();
+                    for (ActiveClientBattlePokemon pokemon : current) {
+                        if (pokemon.getBattlePokemon() != null) pokemonAtTurnStart.add(pokemon.getBattlePokemon().getUuid());
+                    }
+
+                    for (UUID pokemon : sentOut) {
+                        BattlePokemonMemory mem = memory.computeIfAbsent(pokemon, BattlePokemonMemory::new);
+                        mem.onSendOut();
+                    }
+
+                    for (UUID pokemon : removed) {
+                        BattlePokemonMemory mem = memory.computeIfAbsent(pokemon, BattlePokemonMemory::new);
+                        mem.onRemovedFromField();
+                    }
+
+                    for (int i = 0; i < messagesThisTurn.size(); ++i) {
+                        Text text = messagesThisTurn.get(i);
+                        if (text.getContent() instanceof TranslatableTextContent content2 && content2.getKey().contains("cobblemon.battle.used_move_on")) {
+                            String nextKey = null;
+                            if (i < messagesThisTurn.size() - 1) {
+                                Text nextText = messagesThisTurn.get(i + 1);
+                                if (nextText.getContent() instanceof TranslatableTextContent nextContent) {
+                                    nextKey = nextContent.getKey();
+                                }
+                            }
+
+                            if (nextKey != null && !nextKey.contains("cobblemon.battle.immune") && !nextKey.contains("cobblemon.battle.missed") && !nextKey.contains("cobblemon.battle.end.illusion")) {
+                                // The pokemon maybe took an attack
+                                if (content2.getArgs()[1] instanceof Text moveText && moveText.getContent() instanceof TranslatableTextContent moveContent) {
+                                    String moveName = moveContent.getKey().replace("cobblemon.move.", "");
+                                    if (Moves.getByNameOrDummy(moveName).getDamageCategory() != DamageCategories.INSTANCE.getSTATUS()) {
+                                        OwnedPokemon owned = OwnedPokemon.fromTextArg(content2.getArgs()[2]);
+                                        BattlePokemonMemory mem = getOrCreateMemory(getPokemon(battle, owned));
+                                        if (mem != null) mem.confirmNoIllusion();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    messagesThisTurn.clear();
+                }
+                else if ((content.getKey().contains("cobblemon.battle.boost.") || content.getKey().contains("cobblemon.battle.unboost.")) && content.getArgs().length >= 2) {
+                    if (content.getArgs()[1] instanceof Text statText && statText.getContent() instanceof TranslatableTextContent statContent) {
+                        OwnedPokemon pokemon = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                        BattlePokemonMemory mem = getMemory(pokemon);
+                        if (mem == null) continue;
+
+                        String key = statContent.getKey().replace("cobblemon.stat.", "").replace(".name", "");
+                        key = switch (key) {
+                            case "attack" -> "atk";
+                            case "defence" -> "def";
+                            case "special_attack" -> "spa";
+                            case "special_defence" -> "spd";
+                            case "speed" -> "spe";
+                            case "accuracy" -> "acc";
+                            case "evasion" -> "eva";
+                            default -> key;
+                        };
+
+                        int multiplier = content.getKey().contains("unboost") ? -1 : 1;
+                        int amount = 0;
+                        if (content.getKey().contains("slight")) amount = 1;
+                        else if (content.getKey().contains("sharp")) amount = 2;
+                        else if (content.getKey().contains("severe")) amount = 3;
+
+                        if (amount > 0) {
+                            mem.getStatChanges().put(key, mem.getStatChanges().getOrDefault(key, 0) + amount * multiplier);
+                        }
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.clearallboost")) {
+                    memory.values().forEach(mem -> mem.getStatChanges().clear());
+                }
+                else if (content.getKey().contains("cobblemon.battle.clearallnegativeboost") && content.getArgs().length > 0) {
+                    OwnedPokemon pokemon = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    BattlePokemonMemory mem = getMemory(pokemon);
+                    if (mem != null) {
+                        mem.getStatChanges().replaceAll((key, value) -> value < 0 ? 0 : value);
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.clearboost") && content.getArgs().length > 0) {
+                    OwnedPokemon pokemon = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    BattlePokemonMemory mem = getMemory(pokemon);
+                    if (mem != null) {
+                        mem.getStatChanges().clear();
+                    }
+                }
+                else if (content.getKey().contains("cobblemon.battle.setboost.") && content.getArgs().length > 0) {
+                    OwnedPokemon pokemon = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    BattlePokemonMemory mem = getMemory(pokemon);
+                    if (mem == null) continue;
+
+                    if (content.getKey().contains("bellydrum") || content.getKey().contains("angerpoint")) {
+                        mem.getStatChanges().put("atk", 6);
+                    }
+                }
+                else { // There is nothing consistent for items
+                    if (twoArgItemText.contains(content.getKey()) && content.getArgs().length >= 2) {
+                        String item;
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+
+                        if (content.getArgs()[1] instanceof Text itemText) {
+                            if (itemText.getContent() instanceof TranslatableTextContent itemContent) {
+                                item = itemContent.getKey();
+                            }
+                            else {
+                                item = itemText.getString();
+                            }
+                        }
+                        else item = content.getArgs()[1].toString();
+
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            mem.setItem(item);
+                        }
+                    }
+                    else if (content.getKey().equalsIgnoreCase("cobblemon.battle.damage.rockyhelmet") && content.getArgs().length >= 2) {
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[1]);
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            mem.setItem(CobblemonItems.ROCKY_HELMET);
+                        }
+                    }
+                    else if (content.getKey().equalsIgnoreCase("cobblemon.battle.damage.lifeorb") && content.getArgs().length >= 1) {
+                        OwnedPokemon owned = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                        ActiveClientBattlePokemon pokemon = getPokemon(battle, owned);
+                        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+                            BattlePokemonMemory mem = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+                            mem.setItem(CobblemonItems.LIFE_ORB);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static void hudCallback (DrawContext context, RenderTickCounter counter) {
+        ClientBattle battle = CobblemonClient.INSTANCE.getBattle();
+        if (battle == null) {
+            memory.clear();
+            messagesThisTurn.clear();
+            pokemonAtTurnStart.clear();
+            teamPreviews.forEach(TeamPreviewWidget::clearParty);
+            return;
+        }
+
+        if (MinecraftClient.getInstance().player != null && MinecraftClient.isHudEnabled()) {
+            int time = MinecraftClient.getInstance().player.age;
+            if (time != prevTime) {
+                tickLocalBattleInfo();
+                prevTime = time;
+            }
+
+            int height = MinecraftClient.getInstance().getWindow().getScaledHeight();
+            int width = MinecraftClient.getInstance().getWindow().getScaledWidth();
+            int mouseX = (int)(MinecraftClient.getInstance().mouse.getX() * width / MinecraftClient.getInstance().getWindow().getWidth());
+            int mouseY = (int)(MinecraftClient.getInstance().mouse.getY() * height / MinecraftClient.getInstance().getWindow().getHeight());
+            float tickDelta = counter.getTickDelta(true);
+
+            for (TeamPreviewWidget widget : teamPreviews) {
+                widget.realignToScreen();
+                widget.render(context, mouseX, mouseY, tickDelta);
+            }
+        }
+    }
+
+    public static void drawStatChanges (DrawContext context, ActiveClientBattlePokemon pokemon, boolean isLeft, int rank, boolean isCompact) {
+        BattlePokemonMemory mem = getMemory(pokemon);
+        if (!DystoriaTweaksConfig.shouldRenderBattleStatChanges() || mem == null) return;
+
+        StatChangeRenderer.render(context, mem, isLeft, rank, isCompact);
+    }
+
+    @Nullable
+    private static ActiveClientBattlePokemon getPokemon (ClientBattle battle, OwnedPokemon pokemon) {
+        return getPokemon(battle, pokemon.pokemon, pokemon.owner);
+    }
+
+    @Nullable
+    private static ActiveClientBattlePokemon getPokemon (ClientBattle battle, String name, String owner) {
+        for (ClientBattleSide side : battle.getSides()) {
+            for (ActiveClientBattlePokemon pokemon : side.getActiveClientBattlePokemon()) {
+                if (pokemon.getBattlePokemon() == null) continue;
+
+                if (pokemon.getBattlePokemon().getDisplayName().getString().equals(name)
+                    && pokemon.getActor().getDisplayName().getString().equals(owner)
+                ) {
+                    return pokemon;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static List<ActiveClientBattlePokemon> getAllActivePokemon (ClientBattle battle) {
+        List<ActiveClientBattlePokemon> list = new ArrayList<>();
+        for (ClientBattleSide side : battle.getSides()) {
+            for (ActiveClientBattlePokemon pokemon : side.getActiveClientBattlePokemon()) {
+                if (pokemon.getBattlePokemon() == null) continue;
+
+                list.add(pokemon);
+            }
+        }
+        return list;
+    }
+
+    @Nullable
+    private static BattlePokemonMemory getOrCreateMemory (@Nullable ActiveClientBattlePokemon pokemon) {
+        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+            return memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
+        }
+        return null;
+    }
+
+    @Nullable
+    private static BattlePokemonMemory getMemory (@Nullable ActiveClientBattlePokemon pokemon) {
+        if (pokemon != null && pokemon.getBattlePokemon() != null) {
+            return memory.get(pokemon.getBattlePokemon().getUuid());
+        }
+        return null;
+    }
+
+    @Nullable
+    private static BattlePokemonMemory getMemory (OwnedPokemon pokemon) {
+        for (BattlePokemonMemory mem : memory.values()) {
+            if (pokemon.owner().equals(mem.getOwner()) && pokemon.pokemon().equals(mem.getName())) return mem;
+        }
+        return null;
+    }
+
+    private record OwnedPokemon (String pokemon, String owner) {
+        private static OwnedPokemon fromTextArg (Object arg) {
+            String pokemon;
+            String owner;
+
+            if (arg instanceof Text text) {
+                if (text.getContent() instanceof TranslatableTextContent content && content.getArgs().length >= 2) {
+                    if (content.getArgs()[0] instanceof Text ownerText) owner = ownerText.getString();
+                    else owner = content.getArgs()[0].toString();
+
+                    if (content.getArgs()[1] instanceof Text pokemonText) pokemon = pokemonText.getString();
+                    else pokemon = content.getArgs()[1].toString();
+                }
+                else {
+                    pokemon = text.getString();
+                    owner = text.getString();
+                }
+            }
+            else {
+                pokemon = arg.toString();
+                owner = arg.toString();
+            }
+
+            return new OwnedPokemon(pokemon, owner);
         }
     }
 }
