@@ -22,15 +22,12 @@ public final class StatChangeRenderer {
     public static void render (DrawContext context, BattlePokemonMemory memory, boolean isLeft, int order, boolean isCompact) {
         int screenWidth = MinecraftClient.getInstance().getWindow().getScaledWidth();
 
-        int x;
-        int y = isCompact ? BattleOverlay.VERTICAL_INSET + order * BattleOverlay.COMPACT_TILE_HEIGHT : BattleOverlay.VERTICAL_INSET + BattleOverlay.TILE_HEIGHT - 1;
+        int startingLeftX = isCompact ? BattleOverlay.HORIZONTAL_INSET + BattleOverlay.TILE_WIDTH - 5 - order * 4 : BattleOverlay.HORIZONTAL_INSET;
+        int startingRightX = isCompact ? screenWidth - BattleOverlay.HORIZONTAL_INSET - BattleOverlay.TILE_WIDTH + 4 + order * 4 : screenWidth - BattleOverlay.HORIZONTAL_INSET - 1;
+        int startingX = isLeft ? startingLeftX : startingRightX;
 
-        if (isLeft) {
-            x = isCompact ? BattleOverlay.HORIZONTAL_INSET + BattleOverlay.TILE_WIDTH - 5 - order * 4 : BattleOverlay.HORIZONTAL_INSET;
-        }
-        else {
-            x = isCompact ? screenWidth - BattleOverlay.HORIZONTAL_INSET - BattleOverlay.TILE_WIDTH + 4 + order * 4 : screenWidth - BattleOverlay.HORIZONTAL_INSET - 1;
-        }
+        int x = startingX;
+        int y = isCompact ? BattleOverlay.VERTICAL_INSET + order * BattleOverlay.COMPACT_TILE_HEIGHT : BattleOverlay.VERTICAL_INSET + BattleOverlay.TILE_HEIGHT - 1;
 
         int iterations = 0;
 
@@ -53,7 +50,7 @@ public final class StatChangeRenderer {
             }
 
             if (++iterations % 4 == 0) {
-                x = isLeft ? BattleOverlay.HORIZONTAL_INSET : screenWidth - BattleOverlay.HORIZONTAL_INSET - 1;
+                x = startingX;
                 y += TEXT_HEIGHT - 1;
             }
         }
