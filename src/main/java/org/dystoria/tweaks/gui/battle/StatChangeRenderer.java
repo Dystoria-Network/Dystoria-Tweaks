@@ -1,5 +1,6 @@
 package org.dystoria.tweaks.gui.battle;
 
+import com.cobblemon.mod.common.api.types.ElementalTypes;
 import com.cobblemon.mod.common.client.CobblemonResources;
 import com.cobblemon.mod.common.client.gui.battle.BattleOverlay;
 import net.minecraft.client.MinecraftClient;
@@ -10,6 +11,8 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import org.dystoria.tweaks.battle.BattlePokemonMemory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -31,6 +34,7 @@ public final class StatChangeRenderer {
 
         int iterations = 0;
 
+        List<Text> elements = new ArrayList<>();
         for (Map.Entry<String, Integer> statChange : memory.getStatChanges().entrySet()) {
             if (statChange.getValue() == 0) continue;
 
@@ -40,7 +44,26 @@ public final class StatChangeRenderer {
             MutableText text = Text.translatable("gui.battle.dystoria-tweaks.stat", stat, statString);
 
             text.setStyle(Style.EMPTY.withFont(CobblemonResources.INSTANCE.getDEFAULT_LARGE()).withBold(true));
+            elements.add(text);
+        }
 
+        if (memory.getVolatileStatuses().contains("focusenergy")) {
+            elements.add(Text.translatable(
+                "gui.battle.dystoria-tweaks.stat",
+                Text.translatable("gui.battle.dystoria-tweaks.stat.crt"),
+                "+2"
+            ).setStyle(Style.EMPTY.withFont(CobblemonResources.INSTANCE.getDEFAULT_LARGE()).withBold(true)));
+        }
+        else if (memory.getVolatileStatuses().contains("dragoncheer")) {
+            int amount = memory.getType().contains(ElementalTypes.DRAGON) ? 2 : 1;
+            elements.add(Text.translatable(
+                "gui.battle.dystoria-tweaks.stat",
+                Text.translatable("gui.battle.dystoria-tweaks.stat.crt"),
+                "+" + amount
+            ).setStyle(Style.EMPTY.withFont(CobblemonResources.INSTANCE.getDEFAULT_LARGE()).withBold(true)));
+        }
+
+        for (Text text : elements) {
             if (isLeft) {
                 x += renderBorderedText(context, x, y, text);
             }
@@ -55,6 +78,10 @@ public final class StatChangeRenderer {
                 y += TEXT_HEIGHT - 1;
             }
         }
+    }
+
+    private static void renderElementAndMove (DrawContext context, Text label, boolean isLeft) {
+
     }
 
     private static int renderBorderedText (DrawContext context, int x, int y, Text text) {

@@ -377,7 +377,7 @@ public class BattleHud {
                     BattlePokemonMemory mem = getMemory(pokemon);
                     if (mem == null) continue;
 
-                    mem.addStatChange("crt", 2);
+                    mem.addVolatileStatus("focusenergy");
                 }
                 else if (content.getKey().contains("cobblemon.battle.clearallboost")) {
                     memory.values().forEach(mem -> mem.getStatChanges().clear());
