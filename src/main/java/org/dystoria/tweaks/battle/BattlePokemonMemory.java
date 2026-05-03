@@ -184,6 +184,10 @@ public class BattlePokemonMemory {
         return this.statChanges;
     }
 
+    public void addStatChange (String key, int amount) {
+        this.statChanges.put(key, this.statChanges.getOrDefault(key, 0) + amount);
+    }
+
     public RenderablePokemon getRenderablePokemon() {
         return renderablePokemon;
     }
