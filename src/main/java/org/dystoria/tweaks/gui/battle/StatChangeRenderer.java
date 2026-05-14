@@ -1,5 +1,6 @@
 package org.dystoria.tweaks.gui.battle;
 
+import com.cobblemon.mod.common.api.types.ElementalTypes;
 import com.cobblemon.mod.common.client.CobblemonResources;
 import com.cobblemon.mod.common.client.gui.battle.BattleOverlay;
 import net.minecraft.client.MinecraftClient;
@@ -10,6 +11,8 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import org.dystoria.tweaks.battle.BattlePokemonMemory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -22,27 +25,45 @@ public final class StatChangeRenderer {
     public static void render (DrawContext context, BattlePokemonMemory memory, boolean isLeft, int order, boolean isCompact) {
         int screenWidth = MinecraftClient.getInstance().getWindow().getScaledWidth();
 
-        int x;
-        int y = isCompact ? BattleOverlay.VERTICAL_INSET + order * BattleOverlay.COMPACT_TILE_HEIGHT : BattleOverlay.VERTICAL_INSET + BattleOverlay.TILE_HEIGHT - 1;
+        int startingLeftX = isCompact ? BattleOverlay.HORIZONTAL_INSET + BattleOverlay.TILE_WIDTH - 5 - order * 4 : BattleOverlay.HORIZONTAL_INSET;
+        int startingRightX = isCompact ? screenWidth - BattleOverlay.HORIZONTAL_INSET - BattleOverlay.TILE_WIDTH + 4 + order * 4 : screenWidth - BattleOverlay.HORIZONTAL_INSET - 1;
+        int startingX = isLeft ? startingLeftX : startingRightX;
 
-        if (isLeft) {
-            x = isCompact ? BattleOverlay.HORIZONTAL_INSET + BattleOverlay.TILE_WIDTH - 5 - order * 4 : BattleOverlay.HORIZONTAL_INSET;
-        }
-        else {
-            x = isCompact ? screenWidth - BattleOverlay.HORIZONTAL_INSET - BattleOverlay.TILE_WIDTH + 4 + order * 4 : screenWidth - BattleOverlay.HORIZONTAL_INSET - 1;
-        }
+        int x = startingX;
+        int y = isCompact ? BattleOverlay.VERTICAL_INSET + order * BattleOverlay.COMPACT_TILE_HEIGHT : BattleOverlay.VERTICAL_INSET + BattleOverlay.TILE_HEIGHT - 1;
 
         int iterations = 0;
 
+        List<Text> elements = new ArrayList<>();
         for (Map.Entry<String, Integer> statChange : memory.getStatChanges().entrySet()) {
             if (statChange.getValue() == 0) continue;
 
-            MutableText text = Text.literal(statChange.getKey().toUpperCase(Locale.ROOT));
-            if (statChange.getValue() > 0) text.append(" +" + statChange.getValue());
-            else text.append(" " + statChange.getValue());
+            Text stat = Text.translatableWithFallback("gui.battle.dystoria-tweaks.stat." + statChange.getKey(), statChange.getKey().toLowerCase(Locale.ROOT));
+
+            String statString = statChange.getValue() > 0 ? "+" + statChange.getValue() : String.valueOf(statChange.getValue());
+            MutableText text = Text.translatable("gui.battle.dystoria-tweaks.stat", stat, statString);
 
             text.setStyle(Style.EMPTY.withFont(CobblemonResources.INSTANCE.getDEFAULT_LARGE()).withBold(true));
+            elements.add(text);
+        }
 
+        if (memory.getVolatileStatuses().contains("focusenergy")) {
+            elements.add(Text.translatable(
+                "gui.battle.dystoria-tweaks.stat",
+                Text.translatable("gui.battle.dystoria-tweaks.stat.crt"),
+                "+2"
+            ).setStyle(Style.EMPTY.withFont(CobblemonResources.INSTANCE.getDEFAULT_LARGE()).withBold(true)));
+        }
+        else if (memory.getVolatileStatuses().contains("dragoncheer")) {
+            int amount = memory.getType().contains(ElementalTypes.DRAGON) ? 2 : 1;
+            elements.add(Text.translatable(
+                "gui.battle.dystoria-tweaks.stat",
+                Text.translatable("gui.battle.dystoria-tweaks.stat.crt"),
+                "+" + amount
+            ).setStyle(Style.EMPTY.withFont(CobblemonResources.INSTANCE.getDEFAULT_LARGE()).withBold(true)));
+        }
+
+        for (Text text : elements) {
             if (isLeft) {
                 x += renderBorderedText(context, x, y, text);
             }
@@ -53,10 +74,14 @@ public final class StatChangeRenderer {
             }
 
             if (++iterations % 4 == 0) {
-                x = isLeft ? BattleOverlay.HORIZONTAL_INSET : screenWidth - BattleOverlay.HORIZONTAL_INSET - 1;
+                x = startingX;
                 y += TEXT_HEIGHT - 1;
             }
         }
+    }
+
+    private static void renderElementAndMove (DrawContext context, Text label, boolean isLeft) {
+
     }
 
     private static int renderBorderedText (DrawContext context, int x, int y, Text text) {

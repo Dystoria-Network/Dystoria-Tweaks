@@ -83,7 +83,10 @@ public class BattleHud {
                     .findAny();
 
                 if (anyActor.isEmpty()) return; // This should not happen!
-                boolean isLeft = anyActor.get().getSide().equals(battle.getSide1());
+
+                boolean isLeft;
+                if (battle.getSpectating()) isLeft = anyActor.get().getSide().equals(battle.getSide2());
+                else isLeft = anyActor.get().getSide().equals(battle.getSide1());
 
                 for (BattlePokemonState battlePokemonState : side.getPokemon()) {
                     BattlePokemonMemory pokemon = memory.get(battlePokemonState.uuid());
@@ -358,8 +361,6 @@ public class BattleHud {
                             case "special_attack" -> "spa";
                             case "special_defence" -> "spd";
                             case "speed" -> "spe";
-                            case "accuracy" -> "acc";
-                            case "evasion" -> "eva";
                             default -> key;
                         };
 
@@ -370,9 +371,16 @@ public class BattleHud {
                         else if (content.getKey().contains("severe")) amount = 3;
 
                         if (amount > 0) {
-                            mem.getStatChanges().put(key, mem.getStatChanges().getOrDefault(key, 0) + amount * multiplier);
+                            mem.addStatChange(key, amount * multiplier);
                         }
                     }
+                }
+                else if (content.getKey().contains("cobblemon.battle.start.focusenergy") && content.getArgs().length > 0) {
+                    OwnedPokemon pokemon = OwnedPokemon.fromTextArg(content.getArgs()[0]);
+                    BattlePokemonMemory mem = getMemory(pokemon);
+                    if (mem == null) continue;
+
+                    mem.addVolatileStatus("focusenergy");
                 }
                 else if (content.getKey().contains("cobblemon.battle.clearallboost")) {
                     memory.values().forEach(mem -> mem.getStatChanges().clear());
