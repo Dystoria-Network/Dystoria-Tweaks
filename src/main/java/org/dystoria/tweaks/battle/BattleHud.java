@@ -83,7 +83,10 @@ public class BattleHud {
                     .findAny();
 
                 if (anyActor.isEmpty()) return; // This should not happen!
-                boolean isLeft = anyActor.get().getSide().equals(battle.getSide1());
+
+                boolean isLeft;
+                if (battle.getSpectating()) isLeft = anyActor.get().getSide().equals(battle.getSide2());
+                else isLeft = anyActor.get().getSide().equals(battle.getSide1());
 
                 for (BattlePokemonState battlePokemonState : side.getPokemon()) {
                     BattlePokemonMemory pokemon = memory.get(battlePokemonState.uuid());
