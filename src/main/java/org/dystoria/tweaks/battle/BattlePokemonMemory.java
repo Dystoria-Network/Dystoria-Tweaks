@@ -6,7 +6,9 @@ import com.cobblemon.mod.common.api.moves.MoveSet;
 import com.cobblemon.mod.common.api.moves.MoveTemplate;
 import com.cobblemon.mod.common.api.moves.Moves;
 import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
+import com.cobblemon.mod.common.api.types.ElementalType;
 import com.cobblemon.mod.common.client.gui.PokemonGuiUtilsKt;
+import com.cobblemon.mod.common.client.gui.ProfileTransformType;
 import com.cobblemon.mod.common.client.gui.TypeIcon;
 import com.cobblemon.mod.common.client.render.RenderHelperKt;
 import com.cobblemon.mod.common.client.render.models.blockbench.FloatingState;
@@ -30,6 +32,7 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +66,7 @@ public class BattlePokemonMemory {
     private boolean transformed = false;
     private boolean illusionBroken = false;
     private final Map<String, Integer> statChanges = new HashMap<>();
+    private final Set<String> volatileStatus = new HashSet<>();
 
     public BattlePokemonMemory (UUID uuid) {
         this.uuid = uuid;
@@ -91,6 +95,9 @@ public class BattlePokemonMemory {
         }
         this.statChanges.clear();
         this.statChanges.putAll(state.statChanges());
+
+        this.volatileStatus.clear();
+        this.volatileStatus.addAll(state.volatileStatus());
     }
 
     public void setRenderablePokemon (RenderablePokemon renderablePokemon) {
@@ -184,6 +191,18 @@ public class BattlePokemonMemory {
         return this.statChanges;
     }
 
+    public void addStatChange (String key, int amount) {
+        this.statChanges.put(key, this.statChanges.getOrDefault(key, 0) + amount);
+    }
+
+    public Set<String> getVolatileStatuses () {
+        return this.volatileStatus;
+    }
+
+    public void addVolatileStatus (String status) {
+        this.volatileStatus.add(status);
+    }
+
     public RenderablePokemon getRenderablePokemon() {
         return renderablePokemon;
     }
@@ -252,6 +271,7 @@ public class BattlePokemonMemory {
     public void onSendOut () {
         this.illusionBroken = false;
         this.statChanges.clear();
+        this.volatileStatus.clear();
     }
 
     public void onRemovedFromField () {
@@ -260,6 +280,7 @@ public class BattlePokemonMemory {
         this.tempAbility = null;
         this.transformed = false;
         this.statChanges.clear();
+        this.volatileStatus.clear();
     }
 
     public void clearIllusoryData () {
@@ -284,7 +305,18 @@ public class BattlePokemonMemory {
         other.statChanges.clear();
         other.statChanges.putAll(this.statChanges);
 
+        other.volatileStatus.clear();
+        other.volatileStatus.addAll(this.volatileStatus);
+
         other.confirmNoIllusion();
+    }
+
+    public Set<ElementalType> getType () {
+        if (this.renderablePokemon == null) return Set.of();
+
+        Set<ElementalType> types = new HashSet<>();
+        this.renderablePokemon.getForm().getTypes().forEach(types::add);
+        return types;
     }
 
     public void render (DrawContext context, int x, int y, float tickDelta, boolean isLeft) {
@@ -327,10 +359,11 @@ public class BattlePokemonMemory {
                     new FloatingState(),
                     tickDelta,
                     16f,
-                    true,
+                    ProfileTransformType.PROFILE,
                     false,
                     1f, 1f, 1f, 1f,
-                    0f, 0f
+                    0f, 0f,
+                    13
                 );
             }
             context.disableScissor();
