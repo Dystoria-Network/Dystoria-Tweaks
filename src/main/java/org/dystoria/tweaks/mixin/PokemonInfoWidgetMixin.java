@@ -173,7 +173,7 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
     private void renderCustomWidgets (DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
         if (this.currentEntry == null) return;
 
-        boolean hasKnowledge = CobblemonClient.INSTANCE.getClientPokedexData().getKnowledgeForSpecies(this.currentEntry.getSpeciesId()) != PokedexEntryProgress.NONE;
+        boolean hasKnowledge = CobblemonClient.INSTANCE.getClientPokedexData().getKnowledgeForSpecies(this.currentEntry.getSpeciesId()) != PokedexEntryProgress.UNREGISTERED;
         if (hasKnowledge) {
             this.skinButton.render(context, mouseX, mouseY, delta);
             if (this.currentSkinAspectIndex >= 0 && this.skinButton.isButtonHovered(mouseX, mouseY)) {

@@ -8,6 +8,7 @@ import com.cobblemon.mod.common.api.moves.Moves;
 import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.cobblemon.mod.common.api.types.ElementalType;
 import com.cobblemon.mod.common.client.gui.PokemonGuiUtilsKt;
+import com.cobblemon.mod.common.client.gui.ProfileTransformType;
 import com.cobblemon.mod.common.client.gui.TypeIcon;
 import com.cobblemon.mod.common.client.render.RenderHelperKt;
 import com.cobblemon.mod.common.client.render.models.blockbench.FloatingState;
@@ -358,10 +359,11 @@ public class BattlePokemonMemory {
                     new FloatingState(),
                     tickDelta,
                     16f,
-                    true,
+                    ProfileTransformType.PROFILE,
                     false,
                     1f, 1f, 1f, 1f,
-                    0f, 0f
+                    0f, 0f,
+                    13
                 );
             }
             context.disableScissor();
