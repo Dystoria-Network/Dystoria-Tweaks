@@ -13,13 +13,13 @@ import com.cobblemon.mod.common.client.gui.TypeIcon;
 import com.cobblemon.mod.common.client.render.RenderHelperKt;
 import com.cobblemon.mod.common.client.render.models.blockbench.FloatingState;
 import com.cobblemon.mod.common.entity.PoseType;
-import com.cobblemon.mod.common.item.CobblemonItem;
 import com.cobblemon.mod.common.pokemon.RenderablePokemon;
 import com.cobblemon.mod.common.util.math.QuaternionUtilsKt;
 import com.provismet.cobblemon.lilycobble.networking.battle.BattlePokemonState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.item.Item;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
@@ -240,7 +240,7 @@ public class BattlePokemonMemory {
         this.item = new Illusory<>(this.illusionBroken, item);
     }
 
-    public void setItem (CobblemonItem item) {
+    public void setItem (Item item) {
         this.item = new Illusory<>(this.illusionBroken, item.getTranslationKey());
     }
 
