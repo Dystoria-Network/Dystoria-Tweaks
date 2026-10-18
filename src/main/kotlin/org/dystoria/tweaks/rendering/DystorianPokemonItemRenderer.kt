@@ -54,8 +54,14 @@ class DystorianPokemonItemRenderer : CobblemonBuiltinItemRenderer {
 
         var itemFrame3D = mode == ModelTransformationMode.FIXED
         if (itemFrame3D) {
-            val normal = matrices.peek().normalMatrix
-            if (normal.m20().absoluteValue.roundToInt() == 1 || normal.m22().absoluteValue.roundToInt() == 1) {
+            try {
+                // Slight chance that this explodes, couldn't reproduce it on local, so try-catch it is
+                val normal = matrices.peek().normalMatrix
+                if (normal.m20().absoluteValue.roundToInt() == 1 || normal.m22().absoluteValue.roundToInt() == 1) {
+                    itemFrame3D = false
+                }
+            }
+            catch (e: Exception) {
                 itemFrame3D = false
             }
         }
