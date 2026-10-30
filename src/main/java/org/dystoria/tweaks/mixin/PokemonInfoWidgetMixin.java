@@ -5,6 +5,7 @@ import com.cobblemon.mod.common.api.pokedex.entry.PokedexEntry;
 import com.cobblemon.mod.common.api.pokedex.entry.PokedexForm;
 import com.cobblemon.mod.common.client.CobblemonClient;
 import com.cobblemon.mod.common.client.CobblemonResources;
+import com.cobblemon.mod.common.client.gui.pokedex.PokedexGUI;
 import com.cobblemon.mod.common.client.gui.pokedex.PokedexTooltipKt;
 import com.cobblemon.mod.common.client.gui.pokedex.ScaledButton;
 import com.cobblemon.mod.common.client.gui.pokedex.widgets.PokemonInfoWidget;
@@ -114,7 +115,7 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
     }
 
     @Inject(method = "<init>", at = @At("TAIL"), remap = false)
-    private void addButtons (int pX, int pY, Function1<PokedexForm, Unit> updateForm, CallbackInfo info) {
+    private void addButtons (PokedexGUI parent, int pX, int pY, Function1<PokedexForm, Unit> updateForm, CallbackInfo ci) {
         this.addWidget(this.skinButton);
     }
 
@@ -173,7 +174,7 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
     private void renderCustomWidgets (DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
         if (this.currentEntry == null) return;
 
-        boolean hasKnowledge = CobblemonClient.INSTANCE.getClientPokedexData().getKnowledgeForSpecies(this.currentEntry.getSpeciesId()) != PokedexEntryProgress.NONE;
+        boolean hasKnowledge = CobblemonClient.INSTANCE.getClientPokedexData().getKnowledgeForSpecies(this.currentEntry.getSpeciesId()) != PokedexEntryProgress.UNREGISTERED;
         if (hasKnowledge) {
             this.skinButton.render(context, mouseX, mouseY, delta);
             if (this.currentSkinAspectIndex >= 0 && this.skinButton.isButtonHovered(mouseX, mouseY)) {
@@ -186,12 +187,12 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
     @Inject(method = "shinyButton$lambda$0", at = @At("HEAD"), cancellable = true, remap = false)
     private static void overrideShinyButton (PokemonInfoWidget infoWidget, ButtonWidget buttonWidget, CallbackInfo info) {
         IMixinPokemonInfoWidget mixinWidget = ((IMixinPokemonInfoWidget)(Object)infoWidget);
-        boolean seenShinyAndNonShiny = infoWidget.getSeenShinyStates().size() > 1;
+        boolean seenShinyAndNonShiny = infoWidget.getParent().getSeenShinyStates().size() > 1;
 
-        if (!infoWidget.getShiny()) {
+        if (!infoWidget.getParent().getShiny()) {
             if (seenShinyAndNonShiny) {
                 mixinWidget.dystoria_tweaks$setShinyRarity("");
-                infoWidget.setShiny(true);
+                infoWidget.getParent().setShiny(true);
                 infoWidget.updateAspects();
             }
 
@@ -207,7 +208,7 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
             else if (seenRarities.contains("shiniest")) mixinWidget.dystoria_tweaks$setShinyRarity("shiniest");
             else if (seenShinyAndNonShiny) { // Only seen shiny, not shinier/shiniest. Set to non-shiny.
                 mixinWidget.dystoria_tweaks$setShinyRarity("");
-                infoWidget.setShiny(false);
+                infoWidget.getParent().setShiny(false);
             }
         }
         else if (Objects.equals(currentRarity, "shinier")) {
@@ -216,7 +217,7 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
             }
             else if (seenShinyAndNonShiny) {
                 mixinWidget.dystoria_tweaks$setShinyRarity("");
-                infoWidget.setShiny(false);
+                infoWidget.getParent().setShiny(false);
             }
             else {
                 mixinWidget.dystoria_tweaks$setShinyRarity("");
@@ -224,7 +225,7 @@ public abstract class PokemonInfoWidgetMixin extends SoundlessWidget implements 
         }
         else if (seenShinyAndNonShiny) { // Current rarity is shiniest
             mixinWidget.dystoria_tweaks$setShinyRarity("");
-            infoWidget.setShiny(false);
+            infoWidget.getParent().setShiny(false);
         }
         else { // Current rarity is shiniest, but a non-shiny has never been seen
             mixinWidget.dystoria_tweaks$setShinyRarity("");

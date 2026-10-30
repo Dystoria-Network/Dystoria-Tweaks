@@ -25,6 +25,7 @@ public class LanguageGenerator extends FabricLanguageProvider {
         translationBuilder.add("gui.battle.dystoria-tweaks.ability.temp", "%1$s (%2$s)");
         translationBuilder.add("gui.battle.dystoria-tweaks.moves", "Moves");
         translationBuilder.add("gui.battle.dystoria-tweaks.move.pp", "%1$s / %2$s");
+        translationBuilder.add("gui.battle.dystoria-tweaks.move.power_with_stab", "%1$s §e(%2$s§e)");
 
         translationBuilder.add("gui.battle.dystoria-tweaks.field.empty", "---");
         translationBuilder.add("gui.battle.dystoria-tweaks.field.unknown", "???");
@@ -37,5 +38,15 @@ public class LanguageGenerator extends FabricLanguageProvider {
         translationBuilder.add("entry.dystoria-tweaks.team_preview", "Show Pokemon Inspector");
         translationBuilder.add("entry.dystoria-tweaks.stat_changes", "Show Stat Changes");
         translationBuilder.add("entry.dystoria-tweaks.move_inspector", "Show Move Inspector");
+
+        translationBuilder.add("gui.battle.dystoria-tweaks.stat", "%1$s %2$s");
+        translationBuilder.add("gui.battle.dystoria-tweaks.stat.atk", "ATK");
+        translationBuilder.add("gui.battle.dystoria-tweaks.stat.def", "DEF");
+        translationBuilder.add("gui.battle.dystoria-tweaks.stat.spa", "SPA");
+        translationBuilder.add("gui.battle.dystoria-tweaks.stat.spd", "SPD");
+        translationBuilder.add("gui.battle.dystoria-tweaks.stat.spe", "SPE");
+        translationBuilder.add("gui.battle.dystoria-tweaks.stat.accuracy", "ACC");
+        translationBuilder.add("gui.battle.dystoria-tweaks.stat.evasion", "EVA");
+        translationBuilder.add("gui.battle.dystoria-tweaks.stat.crt", "CRT");
     }
 }

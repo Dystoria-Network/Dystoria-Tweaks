@@ -95,14 +95,14 @@ public class MovePreviewWidget extends ClickableWidget {
             return Text.literal("???");
         }
 
-        MutableText base = Text.literal(String.valueOf((int)this.move.getPower()));
+        int power = (int)this.move.getPower();
+        MutableText text = Text.literal(String.valueOf(power));
         if (this.isSTAB) {
             int stabValue = (int)(this.move.getPower() * 1.5);
-            MutableText stabBonus = Text.literal(" (").append(String.valueOf(stabValue)).append(")");
-            stabBonus.setStyle(Style.EMPTY.withColor(Formatting.YELLOW));
-            base.append(stabBonus);
+            Text stabText = Text.literal(String.valueOf(stabValue)).formatted(Formatting.YELLOW);
+            text = Text.translatable("gui.battle.dystoria-tweaks.move.power_with_stab", power, stabText);
         }
 
-        return base;
+        return text;
     }
 }
