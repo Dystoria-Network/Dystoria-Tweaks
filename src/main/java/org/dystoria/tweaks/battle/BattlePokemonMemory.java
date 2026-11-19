@@ -7,6 +7,7 @@ import com.cobblemon.mod.common.api.moves.MoveTemplate;
 import com.cobblemon.mod.common.api.moves.Moves;
 import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.cobblemon.mod.common.api.types.ElementalType;
+import com.cobblemon.mod.common.client.battle.ClientBattlePokemon;
 import com.cobblemon.mod.common.client.gui.PokemonGuiUtilsKt;
 import com.cobblemon.mod.common.client.gui.ProfileTransformType;
 import com.cobblemon.mod.common.client.gui.TypeIcon;
@@ -20,6 +21,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
@@ -102,6 +104,10 @@ public class BattlePokemonMemory {
 
     public void setRenderablePokemon (RenderablePokemon renderablePokemon) {
         this.renderablePokemon = renderablePokemon;
+    }
+
+    public void setRenderablePokemon (ClientBattlePokemon pokemon) {
+        this.renderablePokemon = new RenderablePokemon(pokemon.getSpecies(), pokemon.getState().getCurrentAspects(), ItemStack.EMPTY);
     }
 
     public boolean isActive () {

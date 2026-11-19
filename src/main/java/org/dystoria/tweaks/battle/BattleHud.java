@@ -112,7 +112,7 @@ public class BattleHud {
                 if (pokemon.getBattlePokemon() == null) continue;
 
                 BattlePokemonMemory pokemonMemory = memory.computeIfAbsent(pokemon.getBattlePokemon().getUuid(), BattlePokemonMemory::new);
-                pokemonMemory.setRenderablePokemon(pokemon.getBattlePokemon().getProperties().asRenderablePokemon());
+                pokemonMemory.setRenderablePokemon(pokemon.getBattlePokemon());
                 pokemonMemory.setName(pokemon.getBattlePokemon().getDisplayName().getString());
                 pokemonMemory.setOwner(pokemon.getActor().getDisplayName().getString());
                 pokemonMemory.setActive(true);
